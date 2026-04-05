@@ -5,56 +5,13 @@
  * into categories (bug, feature_request, clinical_concern, positive, other)
  * and extract key phrases.
  * 
- * Run with: npx tsx scripts/classify-reviews.ts
+ * Run with: node scripts/classify-reviews.mjs
  */
 
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
-
-// Types
-type Review = {
-  id: string;
-  app: string;
-  appDisplayName: string;
-  platform: "mobile";
-  os: "ios" | "android";
-  rating: number;
-  title: string | null;
-  body: string;
-  author: string | null;
-  date: string;
-  url: string | null;
-};
-
-type ReviewsFile = {
-  generatedAt: string;
-  windowDays: number;
-  apps: Array<{
-    slug: string;
-    displayName: string;
-    os: "ios" | "android";
-    storeId: string;
-  }>;
-  reviews: Review[];
-};
-
-type ReviewCategory = 'bug' | 'feature_request' | 'clinical_concern' | 'positive' | 'other';
-
-type ClassifiedReview = Review & {
-  category: ReviewCategory;
-  keyPhrases: string[];
-  sentiment: 'negative' | 'neutral' | 'positive';
-};
-
-type ClassifiedReviewsFile = {
-  generatedAt: string;
-  classifiedAt: string;
-  windowDays: number;
-  apps: ReviewsFile["apps"];
-  reviews: ClassifiedReview[];
-};
 
 // Classification schema
 const classificationSchema = z.object({
@@ -64,12 +21,12 @@ const classificationSchema = z.object({
 });
 
 // Rate limiting helper
-async function sleep(ms: number): Promise<void> {
+async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Classify a single review
-async function classifyReview(review: Review): Promise<ClassifiedReview> {
+async function classifyReview(review) {
   const reviewText = [review.title, review.body].filter(Boolean).join(" - ");
   
   const prompt = `Analyze this app review for FreeStyle Libre (a diabetes glucose monitoring app).
@@ -116,12 +73,8 @@ Determine the overall sentiment (negative, neutral, or positive) based on the to
 }
 
 // Process reviews in batches
-async function classifyReviews(
-  reviews: Review[],
-  batchSize: number = 5,
-  delayMs: number = 500
-): Promise<ClassifiedReview[]> {
-  const results: ClassifiedReview[] = [];
+async function classifyReviews(reviews, batchSize = 5, delayMs = 500) {
+  const results = [];
   const total = reviews.length;
   
   for (let i = 0; i < reviews.length; i += batchSize) {
@@ -151,7 +104,7 @@ async function main() {
   console.log("Loading reviews from:", inputPath);
   
   const raw = await fs.readFile(inputPath, "utf8");
-  const data: ReviewsFile = JSON.parse(raw);
+  const data = JSON.parse(raw);
   
   console.log(`Found ${data.reviews.length} reviews to classify`);
   console.log(`Apps: ${data.apps.map(a => a.displayName).join(", ")}`);
@@ -160,7 +113,7 @@ async function main() {
   const classifiedReviews = await classifyReviews(data.reviews, 5, 300);
   
   // Build output file
-  const output: ClassifiedReviewsFile = {
+  const output = {
     generatedAt: data.generatedAt,
     classifiedAt: new Date().toISOString(),
     windowDays: data.windowDays,
@@ -173,7 +126,7 @@ async function main() {
   console.log(`\nClassified reviews written to: ${outputPath}`);
   
   // Print summary
-  const categoryCounts: Record<ReviewCategory, number> = {
+  const categoryCounts = {
     bug: 0,
     feature_request: 0,
     clinical_concern: 0,
