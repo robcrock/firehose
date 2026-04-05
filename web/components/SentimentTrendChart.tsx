@@ -35,9 +35,9 @@ export function SentimentTrendChart({ data }: Props) {
         <h3 className="text-base font-semibold text-gray-900">Sentiment Trend</h3>
         <span className="text-xs text-gray-500">Weekly average rating</span>
       </div>
-      <div style={{ width: "100%", height: 200 }}>
-        {mounted ? (
-          <ResponsiveContainer>
+      <div className="w-full h-[200px]">
+        {mounted && (
+          <ResponsiveContainer width="100%" height={200}>
             <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
@@ -88,8 +88,6 @@ export function SentimentTrendChart({ data }: Props) {
             />
           </LineChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="h-full bg-gray-50 rounded animate-pulse" />
         )}
       </div>
     </div>

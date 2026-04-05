@@ -36,9 +36,9 @@ export function ReviewsChart({ data, onRangeChange }: Props) {
   const defaultEnd = data.length - 1;
 
   return (
-    <div style={{ width: "100%", height: 320 }}>
-      {mounted ? (
-        <ResponsiveContainer>
+    <div className="w-full h-[320px]">
+      {mounted && (
+        <ResponsiveContainer width="100%" height={320}>
           <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
@@ -81,8 +81,6 @@ export function ReviewsChart({ data, onRangeChange }: Props) {
           />
         </LineChart>
         </ResponsiveContainer>
-      ) : (
-        <div className="h-full bg-gray-50 rounded animate-pulse" />
       )}
     </div>
   );

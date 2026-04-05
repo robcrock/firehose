@@ -44,9 +44,9 @@ export function CategoryBreakdownChart({ data }: Props) {
         <h3 className="text-base font-semibold text-gray-900">Review Categories</h3>
         <span className="text-xs text-gray-500">Distribution breakdown</span>
       </div>
-      <div style={{ width: "100%", height: 200 }}>
-        {mounted ? (
-          <ResponsiveContainer>
+      <div className="w-full h-[200px]">
+        {mounted && (
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart
             data={chartData}
             layout="vertical"
@@ -80,8 +80,6 @@ export function CategoryBreakdownChart({ data }: Props) {
             </Bar>
           </BarChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="h-full bg-gray-50 rounded animate-pulse" />
         )}
       </div>
       {/* Legend */}

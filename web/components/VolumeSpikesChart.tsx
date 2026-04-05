@@ -56,9 +56,9 @@ export function VolumeSpikesChart({ data, onRangeChange }: Props) {
           </span>
         )}
       </div>
-      <div style={{ width: "100%", height: 280 }}>
-        {mounted ? (
-          <ResponsiveContainer>
+      <div className="w-full h-[280px]">
+        {mounted && (
+          <ResponsiveContainer width="100%" height={280}>
             <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
@@ -121,8 +121,6 @@ export function VolumeSpikesChart({ data, onRangeChange }: Props) {
             />
           </ComposedChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="h-full bg-gray-50 rounded animate-pulse" />
         )}
       </div>
       {/* Legend */}

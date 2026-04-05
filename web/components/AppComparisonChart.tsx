@@ -82,9 +82,9 @@ export function AppComparisonChart({ data }: Props) {
       </div>
 
       {/* Bar chart */}
-      <div style={{ width: "100%", height: 120 }}>
-        {mounted ? (
-          <ResponsiveContainer>
+      <div className="w-full h-[120px]">
+        {mounted && (
+          <ResponsiveContainer width="100%" height={120}>
             <BarChart
             data={chartData}
             layout="vertical"
@@ -121,8 +121,6 @@ export function AppComparisonChart({ data }: Props) {
             </Bar>
           </BarChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="h-full bg-gray-50 rounded animate-pulse" />
         )}
       </div>
     </div>
