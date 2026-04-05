@@ -1,12 +1,27 @@
 "use client";
 
-import type { PhraseCount } from "@/lib/types";
+import type { PhraseCount, ChartFilter } from "@/lib/types";
 
 type Props = {
   data: PhraseCount[];
+  selectedFilter: ChartFilter | null;
+  onFilterChange: (filter: ChartFilter | null) => void;
 };
 
-export function TopPhrasesPanel({ data }: Props) {
+export function TopPhrasesPanel({ data, selectedFilter, onFilterChange }: Props) {
+  const handlePhraseClick = (phrase: string) => {
+    onFilterChange({
+      type: 'phrase',
+      value: phrase,
+      label: `"${phrase}"`,
+    });
+  };
+
+  const isSelected = (phrase: string) =>
+    selectedFilter?.type === 'phrase' && selectedFilter.value === phrase;
+
+  const isOtherSelected = selectedFilter?.type === 'phrase';
+
   if (data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -25,8 +40,19 @@ export function TopPhrasesPanel({ data }: Props) {
         <span className="text-xs text-gray-500">From 1-2 star reviews</span>
       </div>
       <div className="space-y-2.5">
-        {data.slice(0, 10).map((phrase, index) => (
-          <div key={phrase.phrase} className="group">
+        {data.slice(0, 10).map((phrase) => (
+          <button
+            key={phrase.phrase}
+            onClick={() => handlePhraseClick(phrase.phrase)}
+            className={`group w-full text-left rounded-lg p-2 -m-2 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+              isSelected(phrase.phrase)
+                ? 'bg-blue-50 ring-1 ring-blue-200'
+                : isOtherSelected
+                ? 'opacity-40 hover:opacity-60'
+                : 'hover:bg-gray-50'
+            }`}
+            aria-pressed={isSelected(phrase.phrase)}
+          >
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-gray-800 font-medium truncate flex-1 mr-2">
                 {phrase.phrase}
@@ -59,7 +85,7 @@ export function TopPhrasesPanel({ data }: Props) {
                 )}
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

@@ -10,10 +10,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { AppStats } from "@/lib/types";
+import type { AppStats, ChartFilter } from "@/lib/types";
 
 type Props = {
   data: AppStats[];
+  selectedFilter: ChartFilter | null;
+  onFilterChange: (filter: ChartFilter | null) => void;
 };
 
 // Color scale from green (low pain) to red (high pain)
@@ -24,12 +26,26 @@ function getPainColor(painScore: number, maxPain: number): string {
   return "#ef4444"; // red
 }
 
-export function AppComparisonChart({ data }: Props) {
+export function AppComparisonChart({ data, selectedFilter, onFilterChange }: Props) {
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleAppClick = (app: string, displayName: string) => {
+    onFilterChange({
+      type: 'app',
+      value: app,
+      label: displayName,
+    });
+  };
+
+  const isSelected = (app: string) =>
+    selectedFilter?.type === 'app' && selectedFilter.value === app;
+
+  const isOtherSelected = selectedFilter?.type === 'app';
+
   const maxPain = Math.max(...data.map(d => d.painScore), 1);
   
   const chartData = data.map(d => ({
@@ -52,9 +68,17 @@ export function AppComparisonChart({ data }: Props) {
       {/* Stats cards */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         {chartData.slice(0, 4).map(app => (
-          <div
+          <button
             key={app.app}
-            className="p-3 rounded-lg border border-gray-100 bg-gray-50/50"
+            onClick={() => handleAppClick(app.app, app.displayName)}
+            className={`p-3 rounded-lg border text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+              isSelected(app.app)
+                ? 'border-blue-300 bg-blue-50/50 ring-1 ring-blue-200'
+                : isOtherSelected
+                ? 'border-gray-100 bg-gray-50/50 opacity-40'
+                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-gray-100/50'
+            }`}
+            aria-pressed={isSelected(app.app)}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
@@ -77,7 +101,7 @@ export function AppComparisonChart({ data }: Props) {
             <p className="text-xs text-gray-500 mt-1">
               {app.count} reviews
             </p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -114,9 +138,20 @@ export function AppComparisonChart({ data }: Props) {
                 ];
               }}
             />
-            <Bar dataKey="painScore" radius={[0, 4, 4, 0]} barSize={16}>
+            <Bar 
+              dataKey="painScore" 
+              radius={[0, 4, 4, 0]} 
+              barSize={16}
+              cursor="pointer"
+              onClick={(data) => handleAppClick(data.app, data.displayName)}
+            >
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.painColor} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.painColor}
+                  opacity={isOtherSelected && !isSelected(entry.app) ? 0.3 : 1}
+                  className="transition-opacity duration-200"
+                />
               ))}
             </Bar>
           </BarChart>
