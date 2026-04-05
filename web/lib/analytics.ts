@@ -1,4 +1,3 @@
-import "server-only";
 import { format, parseISO, startOfWeek, addDays } from "date-fns";
 import type {
   ClassifiedReview,

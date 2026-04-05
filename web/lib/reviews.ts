@@ -182,7 +182,7 @@ function countMatches(text: string, patterns: RegExp[]): number {
 }
 
 function classifyReview(review: Review): ReviewCategory {
-  const text = `${review.title} ${review.text}`.toLowerCase();
+  const text = `${review.title ?? ''} ${review.body}`.toLowerCase();
   
   // First check: high-star reviews with positive language are positive
   if (review.rating >= 4) {
@@ -261,7 +261,7 @@ export function classifyReviews(reviews: Review[]): ClassifiedReview[] {
   return reviews.map(review => ({
     ...review,
     category: classifyReview(review),
-    keyPhrases: extractKeyPhrases(`${review.title} ${review.text}`),
+    keyPhrases: extractKeyPhrases(`${review.title ?? ''} ${review.body}`),
     sentiment: deriveSentiment(review.rating),
   }));
 }

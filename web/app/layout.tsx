@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Firehose — FreeStyle Libre Feedback",
-  description: "App Store & Google Play reviews for the FreeStyle Libre app family.",
+  title: "Product Feedback Dashboard — FreeStyle Libre Reviews",
+  description: "AI-powered insights from App Store & Google Play reviews for FreeStyle Libre apps. Sentiment trends, category breakdowns, and pain point analysis.",
 };
 
 export default function RootLayout({

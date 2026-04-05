@@ -38,7 +38,7 @@ export function CategoryBreakdownChart({ data }: Props) {
         <span className="text-xs text-gray-500">Distribution breakdown</span>
       </div>
       <div className="h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart
             data={chartData}
             layout="vertical"
