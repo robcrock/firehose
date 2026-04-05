@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { ClassifiedReview, ReviewCategory, ChartFilter } from "@/lib/types";
-import { X } from "lucide-react";
-import { CATEGORY_CONFIG } from "@/lib/analytics";
+import { useMemo, useState, forwardRef, useEffect } from "react";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import type { ClassifiedReview, ReviewCategory } from "@/lib/types";
+import { CATEGORY_CONFIG, filterReviews } from "@/lib/analytics";
+import { useFilter } from "@/lib/filter-context";
 
 type Props = {
   reviews: ClassifiedReview[];
-  startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD (inclusive)
-  chartFilter: ChartFilter | null;
-  onClearChartFilter: () => void;
 };
 
 function Stars({ rating }: { rating: number }) {
@@ -51,187 +49,238 @@ function CategoryBadge({ category }: { category: ReviewCategory }) {
   );
 }
 
-const ALL_CATEGORIES: ReviewCategory[] = ['bug', 'feature_request', 'clinical_concern', 'positive', 'other'];
+const ALL_CATEGORIES: ReviewCategory[] = [
+  "bug",
+  "feature_request",
+  "clinical_concern",
+  "positive",
+  "other",
+];
 
-export function ReviewsTable({ reviews, startDate, endDate, chartFilter, onClearChartFilter }: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<ReviewCategory | 'all'>('all');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'lowest' | 'highest'>('newest');
+type SortOrder = "newest" | "oldest" | "lowest" | "highest";
 
-  const filtered = useMemo(() => {
-    let result = reviews.filter((r) => {
-      const day = r.date.slice(0, 10);
-      return day >= startDate && day <= endDate;
-    });
+// Triage state management via localStorage
+function useTriagedReviews() {
+  const [triaged, setTriaged] = useState<Set<string>>(new Set());
 
-    // Apply chart filter (from clicking chart elements)
-    if (chartFilter) {
-      switch (chartFilter.type) {
-        case 'category':
-          result = result.filter(r => r.category === chartFilter.value);
-          break;
-        case 'app':
-          result = result.filter(r => r.app === chartFilter.value);
-          break;
-        case 'week': {
-          // Filter reviews from the selected week (7-day window starting from weekStart)
-          const weekStart = new Date(chartFilter.value);
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekEnd.getDate() + 7);
-          result = result.filter(r => {
-            const reviewDate = new Date(r.date.slice(0, 10));
-            return reviewDate >= weekStart && reviewDate < weekEnd;
-          });
-          break;
-        }
-        case 'phrase':
-          result = result.filter(r =>
-            r.keyPhrases.some(p => p.toLowerCase() === chartFilter.value.toLowerCase())
-          );
-          break;
+  useEffect(() => {
+    const stored = localStorage.getItem("triaged_reviews");
+    if (stored) {
+      try {
+        const ids = JSON.parse(stored) as string[];
+        setTriaged(new Set(ids));
+      } catch {
+        // Ignore parse errors
       }
     }
+  }, []);
 
-    // Filter by category buttons (stacks with chart filter)
-    if (selectedCategory !== 'all') {
-      result = result.filter(r => r.category === selectedCategory);
-    }
-
-    // Sort
-    return result.sort((a, b) => {
-      switch (sortOrder) {
-        case 'newest':
-          return b.date.localeCompare(a.date);
-        case 'oldest':
-          return a.date.localeCompare(b.date);
-        case 'lowest':
-          return a.rating - b.rating || b.date.localeCompare(a.date);
-        case 'highest':
-          return b.rating - a.rating || b.date.localeCompare(a.date);
-        default:
-          return 0;
+  const toggleTriage = (id: string) => {
+    setTriaged((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
       }
+      localStorage.setItem("triaged_reviews", JSON.stringify([...next]));
+      return next;
     });
-  }, [reviews, startDate, endDate, chartFilter, selectedCategory, sortOrder]);
+  };
 
-  // Calculate category counts for filter buttons
-  const categoryCounts = useMemo(() => {
-    const counts: Record<ReviewCategory | 'all', number> = {
-      all: 0,
-      bug: 0,
-      feature_request: 0,
-      clinical_concern: 0,
-      positive: 0,
-      other: 0,
-    };
-    
-    reviews.forEach(r => {
-      const day = r.date.slice(0, 10);
-      if (day >= startDate && day <= endDate) {
-        counts.all += 1;
-        counts[r.category] += 1;
-      }
-    });
-    
-    return counts;
-  }, [reviews, startDate, endDate]);
+  return { triaged, toggleTriage };
+}
+
+type ReviewCardProps = {
+  review: ClassifiedReview;
+  isTriaged: boolean;
+  onToggleTriage: () => void;
+};
+
+function ReviewCard({ review, isTriaged, onToggleTriage }: ReviewCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const needsTruncation = review.body.length > 200;
+  const displayBody = needsTruncation && !expanded 
+    ? review.body.slice(0, 200) + "..." 
+    : review.body;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <div className="flex flex-col gap-4 mb-4">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-base font-semibold text-gray-900">
-            {filtered.length.toLocaleString()} reviews
-          </h2>
-          <p className="text-xs text-gray-500 tabular-nums">
-            {startDate} &rarr; {endDate}
-          </p>
-        </div>
-
-        {/* Active Chart Filter Badge */}
-        {chartFilter && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-            <span className="text-sm text-blue-700">
-              Filtered by {chartFilter.type}: <strong>{chartFilter.label}</strong>
-            </span>
-            <button
-              onClick={onClearChartFilter}
-              className="ml-1 p-0.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              aria-label="Clear filter"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
-                selectedCategory === 'all'
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              All ({categoryCounts.all})
-            </button>
-            {ALL_CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors ${
-                  selectedCategory === cat
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {CATEGORY_CONFIG[cat].label} ({categoryCounts[cat]})
-              </button>
-            ))}
-          </div>
-
-          {/* Sort Dropdown */}
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
-            className="ml-auto px-2 py-1 text-xs border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="lowest">Lowest rated</option>
-            <option value="highest">Highest rated</option>
-          </select>
-        </div>
+    <li className={`py-4 first:pt-0 last:pb-0 ${isTriaged ? "opacity-50" : ""}`}>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+        <Stars rating={review.rating} />
+        <span className="font-medium text-gray-700">{review.appDisplayName}</span>
+        <OSBadge os={review.os} />
+        <CategoryBadge category={review.category} />
+        <span className="ml-auto tabular-nums">
+          {format(parseISO(review.date), "MMM d, yyyy")}
+        </span>
       </div>
-
-      {filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center text-sm text-gray-500">
-          No reviews in this range{selectedCategory !== 'all' ? ` for "${CATEGORY_CONFIG[selectedCategory].label}"` : ''}.
-        </div>
-      ) : (
-        <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-          {filtered.map((r) => (
-            <li key={r.id} className="py-4 first:pt-0 last:pb-0">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                <Stars rating={r.rating} />
-                <span className="font-medium text-gray-700">{r.appDisplayName}</span>
-                <OSBadge os={r.os} />
-                <CategoryBadge category={r.category} />
-                <span className="ml-auto tabular-nums">{r.date.slice(0, 10)}</span>
-              </div>
-              {r.title && (
-                <p className="mt-2 text-sm font-semibold text-gray-900">{r.title}</p>
-              )}
-              <p className="mt-1 text-sm text-gray-700 whitespace-pre-wrap line-clamp-4">{r.body}</p>
-              {r.author && (
-                <p className="mt-2 text-xs text-gray-400">— {r.author}</p>
-              )}
-            </li>
-          ))}
-        </ul>
+      {review.title && (
+        <p className="mt-2 text-sm font-semibold text-gray-900">{review.title}</p>
       )}
-    </div>
+      <p className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">
+        {displayBody}
+        {needsTruncation && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="ml-1 text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {expanded ? "Show less" : "Read more"}
+          </button>
+        )}
+      </p>
+      <div className="flex items-center justify-between mt-3">
+        {review.author && (
+          <p className="text-xs text-gray-400">- {review.author}</p>
+        )}
+        <button
+          onClick={onToggleTriage}
+          className={`ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+            isTriaged
+              ? "bg-green-100 text-green-700 hover:bg-green-200"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          <Check className={`w-3.5 h-3.5 ${isTriaged ? "text-green-600" : "text-gray-400"}`} />
+          {isTriaged ? "Triaged" : "Mark as triaged"}
+        </button>
+      </div>
+    </li>
   );
 }
+
+export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
+  function ReviewsTable({ reviews }, ref) {
+    const { filter, filterSummary, toggleCategory, setCategories } = useFilter();
+    const [localCategory, setLocalCategory] = useState<ReviewCategory | "all">("all");
+    const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+    const { triaged, toggleTriage } = useTriagedReviews();
+
+    // First apply global FilterState
+    const globalFiltered = useMemo(() => {
+      return filterReviews(reviews, filter);
+    }, [reviews, filter]);
+
+    // Then apply local category filter (additive on top of global)
+    const filtered = useMemo(() => {
+      let result = globalFiltered;
+
+      // Apply local category filter
+      if (localCategory !== "all") {
+        result = result.filter((r) => r.category === localCategory);
+      }
+
+      // Sort
+      return result.sort((a, b) => {
+        switch (sortOrder) {
+          case "newest":
+            return b.date.localeCompare(a.date);
+          case "oldest":
+            return a.date.localeCompare(b.date);
+          case "lowest":
+            return a.rating - b.rating || b.date.localeCompare(a.date);
+          case "highest":
+            return b.rating - a.rating || b.date.localeCompare(a.date);
+          default:
+            return 0;
+        }
+      });
+    }, [globalFiltered, localCategory, sortOrder]);
+
+    // Calculate category counts for the local filter tabs
+    const categoryCounts = useMemo(() => {
+      const counts: Record<ReviewCategory | "all", number> = {
+        all: globalFiltered.length,
+        bug: 0,
+        feature_request: 0,
+        clinical_concern: 0,
+        positive: 0,
+        other: 0,
+      };
+
+      globalFiltered.forEach((r) => {
+        counts[r.category] += 1;
+      });
+
+      return counts;
+    }, [globalFiltered]);
+
+    return (
+      <div ref={ref} className="bg-white rounded-xl border border-gray-200 p-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 mb-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-base font-semibold text-gray-900">
+              <span className="text-2xl tabular-nums">
+                {filtered.length.toLocaleString()}
+              </span>{" "}
+              reviews
+            </h2>
+            {filterSummary && (
+              <p className="text-sm text-gray-500">{filterSummary}</p>
+            )}
+          </div>
+
+          {/* Category Tab Strip */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setLocalCategory("all")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  localCategory === "all"
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                All ({categoryCounts.all})
+              </button>
+              {ALL_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setLocalCategory(cat)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    localCategory === cat
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {CATEGORY_CONFIG[cat].label} ({categoryCounts[cat]})
+                </button>
+              ))}
+            </div>
+
+            {/* Sort Dropdown */}
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+              className="ml-auto px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="lowest">Lowest rated</option>
+              <option value="highest">Highest rated</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Review List */}
+        {filtered.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 p-12 text-center text-sm text-gray-500">
+            No reviews match the current filters.
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+            {filtered.map((r) => (
+              <ReviewCard
+                key={r.id}
+                review={r}
+                isTriaged={triaged.has(r.id)}
+                onToggleTriage={() => toggleTriage(r.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+);
