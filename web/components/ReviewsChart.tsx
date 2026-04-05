@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Brush,
   CartesianGrid,
@@ -18,6 +19,11 @@ type Props = {
 };
 
 export function ReviewsChart({ data, onRangeChange }: Props) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const handleBrushChange = (range: { startIndex?: number; endIndex?: number } | null) => {
     if (!range || range.startIndex == null || range.endIndex == null) return;
     const startDate = data[range.startIndex]?.date;
@@ -31,8 +37,9 @@ export function ReviewsChart({ data, onRangeChange }: Props) {
 
   return (
     <div className="w-full h-[320px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+      {mounted && (
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
             dataKey="date"
@@ -73,7 +80,8 @@ export function ReviewsChart({ data, onRangeChange }: Props) {
             tickFormatter={(v: string) => v.slice(5)}
           />
         </LineChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
