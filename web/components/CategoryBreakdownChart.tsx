@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -25,6 +26,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export function CategoryBreakdownChart({ data }: Props) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const chartData = data.map(d => ({
     ...d,
     label: CATEGORY_LABELS[d.category] || d.category,
@@ -38,8 +45,9 @@ export function CategoryBreakdownChart({ data }: Props) {
         <span className="text-xs text-gray-500">Distribution breakdown</span>
       </div>
       <div style={{ width: "100%", height: 200 }}>
-        <ResponsiveContainer>
-          <BarChart
+        {mounted ? (
+          <ResponsiveContainer>
+            <BarChart
             data={chartData}
             layout="vertical"
             margin={{ top: 0, right: 30, left: 0, bottom: 0 }}
@@ -71,7 +79,10 @@ export function CategoryBreakdownChart({ data }: Props) {
               ))}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full bg-gray-50 rounded animate-pulse" />
+        )}
       </div>
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">

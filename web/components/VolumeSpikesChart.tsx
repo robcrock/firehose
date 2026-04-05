@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   Brush,
@@ -20,6 +21,11 @@ type Props = {
 };
 
 export function VolumeSpikesChart({ data, onRangeChange }: Props) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const handleBrushChange = (range: { startIndex?: number; endIndex?: number } | null) => {
     if (!range || range.startIndex == null || range.endIndex == null) return;
     const startDate = data[range.startIndex]?.date;
@@ -51,8 +57,9 @@ export function VolumeSpikesChart({ data, onRangeChange }: Props) {
         )}
       </div>
       <div style={{ width: "100%", height: 280 }}>
-        <ResponsiveContainer>
-          <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+        {mounted ? (
+          <ResponsiveContainer>
+            <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="date"
@@ -113,7 +120,10 @@ export function VolumeSpikesChart({ data, onRangeChange }: Props) {
               fill="#f9fafb"
             />
           </ComposedChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full bg-gray-50 rounded animate-pulse" />
+        )}
       </div>
       {/* Legend */}
       <div className="flex items-center gap-4 mt-2 pt-2 border-t border-gray-100">

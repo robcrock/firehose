@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -24,6 +25,11 @@ function getPainColor(painScore: number, maxPain: number): string {
 }
 
 export function AppComparisonChart({ data }: Props) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const maxPain = Math.max(...data.map(d => d.painScore), 1);
   
   const chartData = data.map(d => ({
@@ -77,8 +83,9 @@ export function AppComparisonChart({ data }: Props) {
 
       {/* Bar chart */}
       <div style={{ width: "100%", height: 120 }}>
-        <ResponsiveContainer>
-          <BarChart
+        {mounted ? (
+          <ResponsiveContainer>
+            <BarChart
             data={chartData}
             layout="vertical"
             margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
@@ -113,7 +120,10 @@ export function AppComparisonChart({ data }: Props) {
               ))}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full bg-gray-50 rounded animate-pulse" />
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -17,6 +18,12 @@ type Props = {
 };
 
 export function SentimentTrendChart({ data }: Props) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   // Calculate average across all weeks for reference line
   const overallAvg = data.length > 0
     ? data.reduce((sum, d) => sum + d.avgRating, 0) / data.length
@@ -29,8 +36,9 @@ export function SentimentTrendChart({ data }: Props) {
         <span className="text-xs text-gray-500">Weekly average rating</span>
       </div>
       <div style={{ width: "100%", height: 200 }}>
-        <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+        {mounted ? (
+          <ResponsiveContainer>
+            <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="week"
@@ -79,7 +87,10 @@ export function SentimentTrendChart({ data }: Props) {
               isAnimationActive={false}
             />
           </LineChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full bg-gray-50 rounded animate-pulse" />
+        )}
       </div>
     </div>
   );
