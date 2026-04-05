@@ -11,18 +11,31 @@ import {
   YAxis,
   ReferenceLine,
 } from "recharts";
-import type { WeeklySentiment } from "@/lib/types";
+import type { WeeklySentiment, ChartFilter } from "@/lib/types";
 
 type Props = {
   data: WeeklySentiment[];
+  selectedFilter: ChartFilter | null;
+  onFilterChange: (filter: ChartFilter | null) => void;
 };
 
-export function SentimentTrendChart({ data }: Props) {
+export function SentimentTrendChart({ data, selectedFilter, onFilterChange }: Props) {
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleWeekClick = (weekStart: string, weekLabel: string) => {
+    onFilterChange({
+      type: 'week',
+      value: weekStart,
+      label: `Week of ${weekLabel}`,
+    });
+  };
+
+  const isSelected = (weekStart: string) =>
+    selectedFilter?.type === 'week' && selectedFilter.value === weekStart;
   
   // Calculate average across all weeks for reference line
   const overallAvg = data.length > 0
@@ -82,8 +95,39 @@ export function SentimentTrendChart({ data }: Props) {
               dataKey="avgRating"
               stroke="#2563eb"
               strokeWidth={2}
-              dot={{ fill: "#2563eb", strokeWidth: 0, r: 3 }}
-              activeDot={{ r: 5, fill: "#2563eb" }}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                const selected = isSelected(payload.weekStart);
+                const hasSelection = selectedFilter?.type === 'week';
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={selected ? 6 : 3}
+                    fill={selected ? "#1d4ed8" : "#2563eb"}
+                    stroke={selected ? "#fff" : "none"}
+                    strokeWidth={selected ? 2 : 0}
+                    opacity={hasSelection && !selected ? 0.3 : 1}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                    onClick={() => handleWeekClick(payload.weekStart, payload.week)}
+                  />
+                );
+              }}
+              activeDot={(props) => {
+                const { cx, cy, payload } = props;
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={6}
+                    fill="#1d4ed8"
+                    stroke="#fff"
+                    strokeWidth={2}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleWeekClick(payload.weekStart, payload.week)}
+                  />
+                );
+              }}
               isAnimationActive={false}
             />
           </LineChart>

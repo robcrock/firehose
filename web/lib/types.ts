@@ -79,6 +79,15 @@ export type CategoryCount = {
   percentage: number;
 };
 
+// Chart filter types for click-to-filter interaction
+export type ChartFilterType = 'category' | 'app' | 'week' | 'phrase';
+
+export type ChartFilter = {
+  type: ChartFilterType;
+  value: string;
+  label: string; // Human-readable label for display
+};
+
 // Extended reviews file with classification
 export type ClassifiedReviewsFile = {
   generatedAt: string;

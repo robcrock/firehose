@@ -24,3 +24,23 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Remove default focus outline on chart elements (the blue border issue) */
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}
+
+/* Ensure SVG elements in charts don't show focus outline */
+.recharts-wrapper svg:focus,
+.recharts-wrapper svg *:focus {
+  outline: none;
+}
+
+/* Accessible focus-visible states for keyboard navigation */
+.recharts-wrapper *:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 2px;
+}

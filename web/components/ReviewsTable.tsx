@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ClassifiedReview, ReviewCategory } from "@/lib/types";
+import type { ClassifiedReview, ReviewCategory, ChartFilter } from "@/lib/types";
+import { X } from "lucide-react";
 import { CATEGORY_CONFIG } from "@/lib/analytics";
 
 type Props = {
   reviews: ClassifiedReview[];
   startDate: string; // YYYY-MM-DD
   endDate: string;   // YYYY-MM-DD (inclusive)
+  chartFilter: ChartFilter | null;
+  onClearChartFilter: () => void;
 };
 
 function Stars({ rating }: { rating: number }) {
@@ -50,7 +53,7 @@ function CategoryBadge({ category }: { category: ReviewCategory }) {
 
 const ALL_CATEGORIES: ReviewCategory[] = ['bug', 'feature_request', 'clinical_concern', 'positive', 'other'];
 
-export function ReviewsTable({ reviews, startDate, endDate }: Props) {
+export function ReviewsTable({ reviews, startDate, endDate, chartFilter, onClearChartFilter }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<ReviewCategory | 'all'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'lowest' | 'highest'>('newest');
 
@@ -60,7 +63,35 @@ export function ReviewsTable({ reviews, startDate, endDate }: Props) {
       return day >= startDate && day <= endDate;
     });
 
-    // Filter by category
+    // Apply chart filter (from clicking chart elements)
+    if (chartFilter) {
+      switch (chartFilter.type) {
+        case 'category':
+          result = result.filter(r => r.category === chartFilter.value);
+          break;
+        case 'app':
+          result = result.filter(r => r.app === chartFilter.value);
+          break;
+        case 'week': {
+          // Filter reviews from the selected week (7-day window starting from weekStart)
+          const weekStart = new Date(chartFilter.value);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 7);
+          result = result.filter(r => {
+            const reviewDate = new Date(r.date.slice(0, 10));
+            return reviewDate >= weekStart && reviewDate < weekEnd;
+          });
+          break;
+        }
+        case 'phrase':
+          result = result.filter(r =>
+            r.keyPhrases.some(p => p.toLowerCase() === chartFilter.value.toLowerCase())
+          );
+          break;
+      }
+    }
+
+    // Filter by category buttons (stacks with chart filter)
     if (selectedCategory !== 'all') {
       result = result.filter(r => r.category === selectedCategory);
     }
@@ -80,7 +111,7 @@ export function ReviewsTable({ reviews, startDate, endDate }: Props) {
           return 0;
       }
     });
-  }, [reviews, startDate, endDate, selectedCategory, sortOrder]);
+  }, [reviews, startDate, endDate, chartFilter, selectedCategory, sortOrder]);
 
   // Calculate category counts for filter buttons
   const categoryCounts = useMemo(() => {
@@ -115,6 +146,22 @@ export function ReviewsTable({ reviews, startDate, endDate }: Props) {
             {startDate} &rarr; {endDate}
           </p>
         </div>
+
+        {/* Active Chart Filter Badge */}
+        {chartFilter && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="text-sm text-blue-700">
+              Filtered by {chartFilter.type}: <strong>{chartFilter.label}</strong>
+            </span>
+            <button
+              onClick={onClearChartFilter}
+              className="ml-1 p-0.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Clear filter"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Filters Row */}
         <div className="flex flex-wrap items-center gap-3">
