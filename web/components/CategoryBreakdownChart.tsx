@@ -83,17 +83,24 @@ export function CategoryBreakdownChart({ data, selectedFilter, onFilterChange }:
                 border: "1px solid #e5e7eb",
                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
               }}
-              formatter={(value: number, name: string, props: { payload: { percentage: number } }) => [
-                `${value} (${props.payload.percentage}%)`,
-                "Reviews",
-              ]}
+              formatter={(value, _name, item) => {
+                const payload = (item as { payload?: { percentage: number } }).payload;
+                const pct = payload?.percentage;
+                return [
+                  pct != null ? `${value} (${pct}%)` : String(value),
+                  "Reviews",
+                ];
+              }}
             />
             <Bar 
               dataKey="count" 
               radius={[0, 4, 4, 0]} 
               barSize={24}
               cursor="pointer"
-              onClick={(data) => handleCategoryClick(data.category as ReviewCategory)}
+              onClick={(data) => {
+                const payload = (data as { payload?: { category: ReviewCategory } }).payload;
+                if (payload) handleCategoryClick(payload.category);
+              }}
             >
               {chartData.map((entry, index) => (
                 <Cell 

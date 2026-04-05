@@ -130,8 +130,9 @@ export function AppComparisonChart({ data, selectedFilter, onFilterChange }: Pro
                 border: "1px solid #e5e7eb",
                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
               }}
-              formatter={(value: number, name: string, props: { payload: AppStats }) => {
-                const payload = props.payload;
+              formatter={(value, _name, item) => {
+                const payload = (item as { payload?: AppStats }).payload;
+                if (!payload) return [String(value), "Pain Score"];
                 return [
                   `${value} (Avg: ${payload.avgRating.toFixed(1)}, ${payload.count} reviews)`,
                   "Pain Score",
@@ -143,7 +144,10 @@ export function AppComparisonChart({ data, selectedFilter, onFilterChange }: Pro
               radius={[0, 4, 4, 0]} 
               barSize={16}
               cursor="pointer"
-              onClick={(data) => handleAppClick(data.app, data.displayName)}
+              onClick={(data) => {
+                const payload = (data as { payload?: AppStats }).payload;
+                if (payload) handleAppClick(payload.app, payload.displayName);
+              }}
             >
               {chartData.map((entry, index) => (
                 <Cell 

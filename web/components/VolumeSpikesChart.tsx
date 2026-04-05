@@ -84,12 +84,12 @@ export function VolumeSpikesChart({ data, onRangeChange }: Props) {
                 border: "1px solid #e5e7eb",
                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
               }}
-              formatter={(value: number, name: string) => {
-                if (name === "count") return [value, "Reviews"];
-                if (name === "rollingAvg") return [value.toFixed(1), "7-day Avg"];
-                return [value, name];
+              formatter={(value, name) => {
+                const v = typeof value === "number" ? value : Number(value);
+                if (name === "count") return [v, "Reviews"];
+                if (name === "rollingAvg") return [v.toFixed(1), "7-day Avg"];
+                return [v, String(name)];
               }}
-              labelFormatter={(label) => label}
             />
             <Bar dataKey="count" radius={[2, 2, 0, 0]} barSize={8}>
               {data.map((entry, index) => (

@@ -76,7 +76,10 @@ export function SentimentTrendChart({ data, selectedFilter, onFilterChange }: Pr
                 border: "1px solid #e5e7eb",
                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
               }}
-              formatter={(value: number) => [value.toFixed(2), "Avg Rating"]}
+              formatter={(value) => {
+                const v = typeof value === "number" ? value : Number(value);
+                return [v.toFixed(2), "Avg Rating"];
+              }}
               labelFormatter={(label) => `Week of ${label}`}
             />
             <ReferenceLine
