@@ -1,6 +1,11 @@
 import { Dashboard } from "@/components/Dashboard";
 import { getDailyCounts, getReviews } from "@/lib/reviews";
 
+// Read reviews.json at build time and serve the result as a static page.
+// New data requires a redeploy (either a push to main, or Vercel's "Redeploy"
+// button) — matches the manual-refresh workflow.
+export const dynamic = "force-static";
+
 export default async function Home() {
   const data = await getReviews();
   const dailyCounts = getDailyCounts(data.reviews, data.windowDays, data.generatedAt);

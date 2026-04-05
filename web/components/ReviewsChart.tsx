@@ -52,8 +52,7 @@ export function ReviewsChart({ data, onRangeChange }: Props) {
               borderRadius: 6,
               border: "1px solid #e5e7eb",
             }}
-            labelFormatter={(label: string) => label}
-            formatter={(value: number) => [value, "reviews"]}
+            formatter={(value) => [value, "reviews"]}
           />
           <Line
             type="monotone"
