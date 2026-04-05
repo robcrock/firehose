@@ -122,7 +122,7 @@ export function CategoryBreakdownChart({ data }: Props) {
                   position: "right",
                   fontSize: 10,
                   fill: "#6b7280",
-                  formatter: (value: number) => value,
+                  formatter: (label) => label,
                 }}
               >
                 {chartData.map((entry, index) => {
