@@ -11,7 +11,6 @@ import {
 } from "recharts";
 import type { CategoryCount } from "@/lib/types";
 import { CATEGORY_CONFIG } from "@/lib/analytics";
-import { ClientChartWrapper } from "./ClientChartWrapper";
 
 type Props = {
   data: CategoryCount[];
@@ -38,9 +37,8 @@ export function CategoryBreakdownChart({ data }: Props) {
         <h3 className="text-base font-semibold text-gray-900">Review Categories</h3>
         <span className="text-xs text-gray-500">Distribution breakdown</span>
       </div>
-      <ClientChartWrapper fallbackHeight="200px">
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: "100%", height: 200 }}>
+        <ResponsiveContainer>
           <BarChart
             data={chartData}
             layout="vertical"
@@ -73,9 +71,8 @@ export function CategoryBreakdownChart({ data }: Props) {
               ))}
             </Bar>
           </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </ClientChartWrapper>
+        </ResponsiveContainer>
+      </div>
       {/* Legend */}
       <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
         {chartData.map(d => (

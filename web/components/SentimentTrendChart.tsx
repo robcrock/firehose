@@ -11,7 +11,6 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { WeeklySentiment } from "@/lib/types";
-import { ClientChartWrapper } from "./ClientChartWrapper";
 
 type Props = {
   data: WeeklySentiment[];
@@ -29,9 +28,8 @@ export function SentimentTrendChart({ data }: Props) {
         <h3 className="text-base font-semibold text-gray-900">Sentiment Trend</h3>
         <span className="text-xs text-gray-500">Weekly average rating</span>
       </div>
-      <ClientChartWrapper fallbackHeight="200px">
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: "100%", height: 200 }}>
+        <ResponsiveContainer>
           <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
@@ -81,9 +79,8 @@ export function SentimentTrendChart({ data }: Props) {
               isAnimationActive={false}
             />
           </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </ClientChartWrapper>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

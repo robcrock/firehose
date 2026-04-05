@@ -10,7 +10,6 @@ import {
   YAxis,
 } from "recharts";
 import type { AppStats } from "@/lib/types";
-import { ClientChartWrapper } from "./ClientChartWrapper";
 
 type Props = {
   data: AppStats[];
@@ -77,9 +76,8 @@ export function AppComparisonChart({ data }: Props) {
       </div>
 
       {/* Bar chart */}
-      <ClientChartWrapper fallbackHeight="120px">
-        <div className="h-[120px]">
-          <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: "100%", height: 120 }}>
+        <ResponsiveContainer>
           <BarChart
             data={chartData}
             layout="vertical"
@@ -115,9 +113,8 @@ export function AppComparisonChart({ data }: Props) {
               ))}
             </Bar>
           </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </ClientChartWrapper>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

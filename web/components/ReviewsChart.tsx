@@ -11,7 +11,6 @@ import {
   YAxis,
 } from "recharts";
 import type { DailyCount } from "@/lib/types";
-import { ClientChartWrapper } from "./ClientChartWrapper";
 
 type Props = {
   data: DailyCount[];
@@ -31,9 +30,8 @@ export function ReviewsChart({ data, onRangeChange }: Props) {
   const defaultEnd = data.length - 1;
 
   return (
-    <ClientChartWrapper fallbackHeight="320px">
-      <div className="w-full h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
+    <div style={{ width: "100%", height: 320 }}>
+      <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
@@ -75,8 +73,7 @@ export function ReviewsChart({ data, onRangeChange }: Props) {
             tickFormatter={(v: string) => v.slice(5)}
           />
         </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </ClientChartWrapper>
+      </ResponsiveContainer>
+    </div>
   );
 }

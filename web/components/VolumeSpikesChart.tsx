@@ -13,7 +13,6 @@ import {
   YAxis,
 } from "recharts";
 import type { DailyCountWithSpike } from "@/lib/types";
-import { ClientChartWrapper } from "./ClientChartWrapper";
 
 type Props = {
   data: DailyCountWithSpike[];
@@ -51,9 +50,8 @@ export function VolumeSpikesChart({ data, onRangeChange }: Props) {
           </span>
         )}
       </div>
-      <ClientChartWrapper fallbackHeight="280px">
-        <div className="h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: "100%", height: 280 }}>
+        <ResponsiveContainer>
           <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
@@ -115,9 +113,8 @@ export function VolumeSpikesChart({ data, onRangeChange }: Props) {
               fill="#f9fafb"
             />
           </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </ClientChartWrapper>
+        </ResponsiveContainer>
+      </div>
       {/* Legend */}
       <div className="flex items-center gap-4 mt-2 pt-2 border-t border-gray-100">
         <div className="flex items-center gap-1.5">
