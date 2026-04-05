@@ -5,14 +5,18 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "classify": "npx tsx ../scripts/classify-reviews.ts"
   },
   "dependencies": {
+    "ai": "^6.0.0",
     "date-fns": "^4.1.0",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "server-only": "^0.0.1",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
