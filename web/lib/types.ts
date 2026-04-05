@@ -96,3 +96,23 @@ export type ClassifiedReviewsFile = {
   apps: AppConfig[];
   reviews: ClassifiedReview[];
 };
+
+// Global dashboard filter state (consumed via React Context).
+// All fields are additive AND-filters; empty arrays mean "no constraint".
+export type FilterState = {
+  timeRange: "7d" | "30d" | "90d" | { start: string; end: string };
+  apps: string[];                          // app slugs; [] = all
+  os: "all" | "ios" | "android";
+  categories: ReviewCategory[];            // [] = all
+  ratingBucket: "all" | "1-2" | "3" | "4-5";
+  activeKeyword: string | null;            // free-text keyword / phrase
+};
+
+export const DEFAULT_FILTER_STATE: FilterState = {
+  timeRange: "90d",
+  apps: [],
+  os: "all",
+  categories: [],
+  ratingBucket: "all",
+  activeKeyword: null,
+};

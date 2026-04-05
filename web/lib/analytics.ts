@@ -8,6 +8,7 @@ import type {
   PhraseCount,
   CategoryCount,
   ReviewCategory,
+  FilterState,
 } from "./types";
 
 /**
@@ -203,6 +204,126 @@ export function getTopPhrases(
         existing.apps.add(review.appDisplayName);
       } else {
         phraseMap.set(normalizedPhrase, {
+          count: 1,
+          apps: new Set([review.appDisplayName]),
+        });
+      }
+    }
+  }
+
+  return Array.from(phraseMap.entries())
+    .map(([phrase, { count, apps }]) => ({
+      phrase,
+      count,
+      apps: Array.from(apps),
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+/**
+ * Apply the global FilterState to a list of classified reviews.
+ *
+ * Semantics:
+ * - timeRange: "7d"/"30d"/"90d" = rolling window ending on the newest
+ *   review's date. Custom { start, end } is inclusive on both ends.
+ * - apps: empty array = no constraint.
+ * - os: "all" = no constraint.
+ * - categories: empty array = no constraint.
+ * - ratingBucket: "all" = no constraint. "1-2" matches ratings 1 or 2.
+ * - activeKeyword: case-insensitive match in title, body, or keyPhrases.
+ */
+export function filterReviews(
+  reviews: ClassifiedReview[],
+  filter: FilterState
+): ClassifiedReview[] {
+  if (reviews.length === 0) return reviews;
+
+  // Resolve the time window to concrete start/end YYYY-MM-DD strings.
+  let startDay: string;
+  let endDay: string;
+  if (typeof filter.timeRange === "string") {
+    const days = filter.timeRange === "7d" ? 7 : filter.timeRange === "30d" ? 30 : 90;
+    // Anchor the window at the newest review so the filter is stable
+    // across deploys regardless of wall-clock time.
+    const newest = reviews.reduce((max, r) => (r.date > max ? r.date : max), reviews[0].date);
+    const anchor = parseISO(newest);
+    const endUtc = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate()));
+    const startUtc = addDays(endUtc, -(days - 1));
+    startDay = format(startUtc, "yyyy-MM-dd");
+    endDay = format(endUtc, "yyyy-MM-dd");
+  } else {
+    startDay = filter.timeRange.start;
+    endDay = filter.timeRange.end;
+  }
+
+  const appSet = filter.apps.length > 0 ? new Set(filter.apps) : null;
+  const categorySet = filter.categories.length > 0 ? new Set(filter.categories) : null;
+  const keyword = filter.activeKeyword?.toLowerCase().trim() || null;
+
+  return reviews.filter((r) => {
+    // Time range (inclusive).
+    const day = r.date.slice(0, 10);
+    if (day < startDay || day > endDay) return false;
+
+    // App whitelist.
+    if (appSet && !appSet.has(r.app)) return false;
+
+    // OS.
+    if (filter.os !== "all" && r.os !== filter.os) return false;
+
+    // Category whitelist.
+    if (categorySet && !categorySet.has(r.category)) return false;
+
+    // Rating bucket.
+    if (filter.ratingBucket !== "all") {
+      if (filter.ratingBucket === "1-2" && !(r.rating === 1 || r.rating === 2)) return false;
+      if (filter.ratingBucket === "3" && r.rating !== 3) return false;
+      if (filter.ratingBucket === "4-5" && !(r.rating === 4 || r.rating === 5)) return false;
+    }
+
+    // Keyword (title / body / keyPhrases).
+    if (keyword) {
+      const hay =
+        (r.title?.toLowerCase() ?? "") +
+        "\n" +
+        r.body.toLowerCase() +
+        "\n" +
+        r.keyPhrases.join(" ").toLowerCase();
+      if (!hay.includes(keyword)) return false;
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Get the top-N pain-point phrases for a single app.
+ * Mirrors getTopPhrases but scopes to one app slug, so Zone 4's
+ * per-app drill-down drawer can show contextualized complaints.
+ */
+export function getAppPainPoints(
+  reviews: ClassifiedReview[],
+  appSlug: string,
+  limit: number = 5,
+  maxRating: number = 2
+): PhraseCount[] {
+  const phraseMap = new Map<string, { count: number; apps: Set<string> }>();
+
+  for (const review of reviews) {
+    if (review.app !== appSlug) continue;
+    if (review.rating > maxRating) continue;
+
+    for (const phrase of review.keyPhrases) {
+      const normalized = phrase.toLowerCase().trim();
+      if (normalized.length < 3) continue;
+
+      const existing = phraseMap.get(normalized);
+      if (existing) {
+        existing.count += 1;
+        existing.apps.add(review.appDisplayName);
+      } else {
+        phraseMap.set(normalized, {
           count: 1,
           apps: new Set([review.appDisplayName]),
         });
