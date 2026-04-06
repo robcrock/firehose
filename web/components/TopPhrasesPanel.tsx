@@ -32,13 +32,13 @@ export function TopPhrasesPanel({ data }: Props) {
         </h3>
       </div>
 
-      <div className="space-y-4">
+      <div className="divide-y divide-border">
         {displayedPhrases.map((phrase) => (
-          <div key={phrase.phrase} className="space-y-1.5">
+          <div key={phrase.phrase} className="py-4 first:pt-0 space-y-1.5">
             {/* Phrase name + count */}
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <span className="text-sm font-semibold text-foreground capitalize">
+                <span className="text-sm font-bold text-foreground">
                   {phrase.phrase
                     .split(" ")
                     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -53,7 +53,7 @@ export function TopPhrasesPanel({ data }: Props) {
               </span>
             </div>
             {/* Bar */}
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-[5px] bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gray-900 rounded-full"
                 style={{ width: `${(phrase.count / maxCount) * 100}%` }}
