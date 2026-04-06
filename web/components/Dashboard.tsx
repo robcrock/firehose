@@ -188,15 +188,18 @@ function DashboardContent({
         currentNegativeCount={currentHalfKPIs?.negativeCount ?? null}
       />
 
-      {/* Zone 3: Charts + Sidebar */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
-        <div className="md:col-span-3" ref={volumeChartRef}>
+      {/* Zone 3: Charts + Reviews + Sidebar */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-2rem)]">
+        <div className="md:col-span-3 min-h-0 h-full" ref={volumeChartRef}>
           <TabbedChartCard
             tabs={[
               { id: "sentiment", label: "Sentiment Trend" },
               { id: "volume", label: "Review Volume" },
             ]}
             defaultTab="sentiment"
+            footer={
+              <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
+            }
           >
             {(activeTab) =>
               activeTab === "sentiment" ? (
@@ -212,18 +215,9 @@ function DashboardContent({
             }
           </TabbedChartCard>
         </div>
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 min-h-0 h-full overflow-y-auto">
           <CategoryBreakdownChart data={categoryBreakdown} />
           <AppComparisonChart data={appComparison} allReviews={filteredReviews} />
-        </div>
-      </div>
-
-      {/* Zone 4: Reviews + Top Pain Points */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-h-[100vh]">
-        <div className="md:col-span-3 min-h-0">
-          <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
-        </div>
-        <div className="min-h-0">
           <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
         </div>
       </div>
