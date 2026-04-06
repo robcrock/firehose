@@ -80,6 +80,8 @@ export function CategoryBreakdownChart({ data }: Props) {
                   cy="50%"
                   innerRadius={60}
                   outerRadius={90}
+                  startAngle={90}
+                  endAngle={-270}
                   paddingAngle={2}
                   strokeWidth={0}
                   isAnimationActive={false}
