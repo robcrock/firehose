@@ -189,7 +189,7 @@ function DashboardContent({
       />
 
       {/* Zone 3: Charts + Sidebar */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
         <div className="md:col-span-3" ref={volumeChartRef}>
           <TabbedChartCard
             tabs={[
@@ -218,11 +218,13 @@ function DashboardContent({
         </div>
       </div>
 
-      {/* Zone 4: Top Pain Points */}
-      <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
-
-      {/* Zone 6: Review List */}
-      <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
+      {/* Zone 4: Reviews + Top Pain Points */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-3">
+          <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
+        </div>
+        <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
+      </div>
     </div>
   );
 }

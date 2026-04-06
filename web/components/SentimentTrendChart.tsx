@@ -24,7 +24,7 @@ export function SentimentTrendChart({ data }: Props) {
   }, []);
 
   return (
-    <div className="w-full flex-1 min-h-[200px]">
+    <div className="w-full h-full">
       {mounted && (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart

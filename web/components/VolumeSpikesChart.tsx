@@ -174,7 +174,7 @@ export function VolumeSpikesChart({
       </div>
 
       {/* Chart */}
-      <div className="w-full flex-1 min-h-[200px]">
+      <div className="w-full flex-1">
         {mounted && (
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart

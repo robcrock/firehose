@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { SlidersHorizontal, Download, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -31,13 +28,6 @@ const OS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "ios", label: "iOS" },
   { value: "android", label: "Android" },
-] as const;
-
-const RATING_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "1-2", label: "1-2 ★" },
-  { value: "3", label: "3 ★" },
-  { value: "4-5", label: "4-5 ★" },
 ] as const;
 
 const CATEGORY_ORDER: ReviewCategory[] = [
@@ -132,14 +122,9 @@ function MultiSelectPopover({
   );
 }
 
-/* ── Filter Panel ──────────────────────────────────────── */
+/* ── Main Bar ──────────────────────────────────────────── */
 
-type FilterPanelProps = {
-  open: boolean;
-  apps: AppStats[];
-};
-
-function FilterPanel({ open, apps }: FilterPanelProps) {
+export function GlobalFilterBar({ apps }: Props) {
   const {
     filter,
     setTimeRange,
@@ -148,64 +133,29 @@ function FilterPanel({ open, apps }: FilterPanelProps) {
     setOS,
     toggleCategory,
     setCategories,
-    setRatingBucket,
-    setKeyword,
     reset,
     hasActiveFilters,
   } = useFilter();
 
-  const [keywordDraft, setKeywordDraft] = useState(filter.activeKeyword ?? "");
-
-  if (!open) return null;
-
   return (
-    <div className="border-t border-border pt-4 pb-2 mt-3 space-y-4">
-      {/* Row 1: Segmented controls */}
-      <div className="flex flex-wrap items-center gap-6">
-        <div className="space-y-1.5">
-          <span className="text-overline font-semibold uppercase tracking-wider text-muted-foreground">
-            Period
-          </span>
-          <div className="block">
-            <SegmentedControl
-              options={TIME_RANGE_OPTIONS}
-              value={
-                typeof filter.timeRange === "string" ? filter.timeRange : "90d"
-              }
-              onChange={(v) => setTimeRange(v as "7d" | "30d" | "90d")}
-            />
-          </div>
-        </div>
+    <div className="bg-gray-50">
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Period */}
+        <SegmentedControl
+          options={TIME_RANGE_OPTIONS}
+          value={
+            typeof filter.timeRange === "string" ? filter.timeRange : "90d"
+          }
+          onChange={(v) => setTimeRange(v as "7d" | "30d" | "90d")}
+        />
 
-        <div className="space-y-1.5">
-          <span className="text-overline font-semibold uppercase tracking-wider text-muted-foreground">
-            Platform
-          </span>
-          <div className="block">
-            <SegmentedControl
-              options={OS_OPTIONS}
-              value={filter.os}
-              onChange={(v) => setOS(v as typeof filter.os)}
-            />
-          </div>
-        </div>
+        {/* Platform */}
+        <SegmentedControl
+          options={OS_OPTIONS}
+          value={filter.os}
+          onChange={(v) => setOS(v as typeof filter.os)}
+        />
 
-        <div className="space-y-1.5">
-          <span className="text-overline font-semibold uppercase tracking-wider text-muted-foreground">
-            Rating
-          </span>
-          <div className="block">
-            <SegmentedControl
-              options={RATING_OPTIONS}
-              value={filter.ratingBucket}
-              onChange={(v) => setRatingBucket(v as typeof filter.ratingBucket)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Row 2: Multi-selects + keyword */}
-      <div className="flex flex-wrap items-end gap-3">
         {/* Apps */}
         <MultiSelectPopover
           label="Apps"
@@ -256,82 +206,18 @@ function FilterPanel({ open, apps }: FilterPanelProps) {
           ))}
         </MultiSelectPopover>
 
-        {/* Keyword search */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Search keyword…"
-            value={keywordDraft}
-            onChange={(e) => setKeywordDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                setKeyword(keywordDraft.trim() || null);
-              }
-            }}
-            className="h-7 w-40 pl-8 text-xs"
-          />
-          {filter.activeKeyword && (
-            <button
-              onClick={() => {
-                setKeyword(null);
-                setKeywordDraft("");
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear keyword"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-
         <div className="flex-1" />
 
         {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              reset();
-              setKeywordDraft("");
-            }}
+            onClick={reset}
           >
             Clear all
           </Button>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ── Main Bar ──────────────────────────────────────────── */
-
-export function GlobalFilterBar({ apps, totalFilteredCount }: Props) {
-  const { hasActiveFilters, filterSummary } = useFilter();
-  const [panelOpen, setPanelOpen] = useState(false);
-
-  return (
-    <div className="bg-gray-50">
-      <div className="flex items-center justify-end">
-        {/* Right: Filters + Export buttons */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant={panelOpen || hasActiveFilters ? "default" : "outline"}
-            onClick={() => setPanelOpen(!panelOpen)}
-          >
-            <SlidersHorizontal />
-            Filters
-            {hasActiveFilters && !panelOpen && (
-              <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-            )}
-          </Button>
-          <Button variant="outline">
-            <Download />
-            Export CSV
-          </Button>
-        </div>
-      </div>
-
-      <FilterPanel open={panelOpen} apps={apps} />
     </div>
   );
 }

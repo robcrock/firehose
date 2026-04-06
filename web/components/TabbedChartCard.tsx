@@ -19,7 +19,7 @@ export function TabbedChartCard({ tabs, defaultTab, children }: Props) {
   const [activeTab, setActiveTab] = useState(defaultTab ?? tabs[0]?.id ?? "");
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 pb-4 flex flex-col h-full">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 pb-4 flex flex-col">
       {/* Tab bar */}
       <div className="flex items-baseline gap-6 mb-3">
         {tabs.map((tab) => (
@@ -49,8 +49,10 @@ export function TabbedChartCard({ tabs, defaultTab, children }: Props) {
         ))}
       </div>
 
-      {/* Active tab content */}
-      {children(activeTab)}
+      {/* Active tab content — locked to 16:9 */}
+      <div className="flex flex-col justify-end aspect-video">
+        {children(activeTab)}
+      </div>
     </div>
   );
 }

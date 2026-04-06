@@ -12,7 +12,7 @@ export function TopPhrasesPanel({ data }: Props) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-title font-semibold tracking-tight text-foreground mb-2">
-          Top Pain Points
+          Pain Points
         </h3>
         <p className="text-sm text-muted-foreground leading-relaxed">
           No phrases found in low-rated reviews.
@@ -24,34 +24,27 @@ export function TopPhrasesPanel({ data }: Props) {
   const maxCount = Math.max(...data.map((d) => d.count));
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="mb-5">
+    <div className="bg-white rounded-xl border border-gray-200 flex flex-col h-full overflow-hidden">
+      <div className="px-6 pt-6 pb-3">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
-          Top Pain Points
+          Pain Points
         </h3>
       </div>
 
-      <div className="divide-y divide-border max-h-[480px] overflow-y-auto pr-3">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         {data.map((phrase) => (
-          <div key={phrase.phrase} className="py-4 first:pt-0 space-y-1.5">
-            {/* Phrase name + count */}
+          <div key={phrase.phrase} className="py-3 space-y-1.5">
             <div className="flex items-start justify-between">
-              <div>
-                <span className="text-sm font-bold text-foreground">
-                  {phrase.phrase
-                    .split(" ")
-                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                    .join(" ")}
-                </span>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {phrase.apps.join(", ")}
-                </p>
-              </div>
-              <span className="text-sm font-semibold text-foreground tabular-nums ml-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                {phrase.phrase
+                  .split(" ")
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ")}
+              </span>
+              <span className="text-sm font-medium text-muted-foreground tabular-nums ml-3">
                 {phrase.count}x
               </span>
             </div>
-            {/* Bar */}
             <div className="h-[5px] bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gray-900 rounded-full"
@@ -61,7 +54,6 @@ export function TopPhrasesPanel({ data }: Props) {
           </div>
         ))}
       </div>
-
     </div>
   );
 }
