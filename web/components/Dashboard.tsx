@@ -87,6 +87,56 @@ function DashboardContent({
   const negativeCount = filteredReviews.filter((r) => r.rating <= 2).length;
   const spikeCount = dailyCountsWithSpikes.filter((d) => d.isSpike).length;
 
+  // Prior period KPIs: split filtered reviews into first half (prior) and
+  // second half (current) by date, then compare. This always works regardless
+  // of how much historical data is available.
+  const priorPeriodKPIs = useMemo(() => {
+    if (filteredReviews.length < 4) return null;
+
+    const sorted = [...filteredReviews].sort(
+      (a, b) => a.date.localeCompare(b.date)
+    );
+    const mid = Math.floor(sorted.length / 2);
+    const priorHalf = sorted.slice(0, mid);
+
+    const priorTotal = priorHalf.length;
+    const priorAvg =
+      priorTotal > 0
+        ? priorHalf.reduce((sum, r) => sum + r.rating, 0) / priorTotal
+        : 0;
+    const priorNegative = priorHalf.filter((r) => r.rating <= 2).length;
+
+    return {
+      totalReviews: priorTotal,
+      avgRating: priorAvg,
+      negativeCount: priorNegative,
+    };
+  }, [filteredReviews]);
+
+  // Current half KPIs (second half of the sorted filtered reviews)
+  const currentHalfKPIs = useMemo(() => {
+    if (filteredReviews.length < 4) return null;
+
+    const sorted = [...filteredReviews].sort(
+      (a, b) => a.date.localeCompare(b.date)
+    );
+    const mid = Math.floor(sorted.length / 2);
+    const currentHalf = sorted.slice(mid);
+
+    const currentTotal = currentHalf.length;
+    const currentAvg =
+      currentTotal > 0
+        ? currentHalf.reduce((sum, r) => sum + r.rating, 0) / currentTotal
+        : 0;
+    const currentNegative = currentHalf.filter((r) => r.rating <= 2).length;
+
+    return {
+      totalReviews: currentTotal,
+      avgRating: currentAvg,
+      negativeCount: currentNegative,
+    };
+  }, [filteredReviews]);
+
   const scrollToSpikes = useCallback(() => {
     volumeChartRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
@@ -109,7 +159,12 @@ function DashboardContent({
         avgRating={avgRating}
         negativeCount={negativeCount}
         spikeCount={spikeCount}
-        onScrollToSpikes={scrollToSpikes}
+        priorTotalReviews={priorPeriodKPIs?.totalReviews ?? null}
+        priorAvgRating={priorPeriodKPIs?.avgRating ?? null}
+        priorNegativeCount={priorPeriodKPIs?.negativeCount ?? null}
+        currentTotalReviews={currentHalfKPIs?.totalReviews ?? null}
+        currentAvgRating={currentHalfKPIs?.avgRating ?? null}
+        currentNegativeCount={currentHalfKPIs?.negativeCount ?? null}
       />
 
       {/* Zone 3: Overview - Trends + Distribution */}

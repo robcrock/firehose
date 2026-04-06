@@ -1,96 +1,124 @@
 "use client";
 
-import { useFilter } from "@/lib/filter-context";
-
 type Props = {
   totalReviews: number;
   avgRating: number;
   negativeCount: number;
   spikeCount: number;
-  onScrollToSpikes: () => void;
+  priorTotalReviews: number | null;
+  priorAvgRating: number | null;
+  priorNegativeCount: number | null;
+  currentTotalReviews: number | null;
+  currentAvgRating: number | null;
+  currentNegativeCount: number | null;
 };
+
+function formatDeltaPercent(
+  current: number | null,
+  prior: number | null
+): string | null {
+  if (current === null || prior === null || prior === 0) return null;
+  const delta = ((current - prior) / prior) * 100;
+  const sign = delta >= 0 ? "+" : "";
+  return `${sign}${Math.round(delta)}% vs prior period`;
+}
+
+function formatDeltaPts(
+  current: number | null,
+  prior: number | null
+): string | null {
+  if (current === null || prior === null) return null;
+  const delta = current - prior;
+  const sign = delta >= 0 ? "+" : "";
+  return `${sign}${delta.toFixed(1)} pts vs prior period`;
+}
 
 export function KPIStrip({
   totalReviews,
   avgRating,
   negativeCount,
   spikeCount,
-  onScrollToSpikes,
+  priorTotalReviews,
+  priorAvgRating,
+  priorNegativeCount,
+  currentTotalReviews,
+  currentAvgRating,
+  currentNegativeCount,
 }: Props) {
-  const { reset, setRatingBucket, filter } = useFilter();
+  const negativePercentage =
+    totalReviews > 0
+      ? ((negativeCount / totalReviews) * 100).toFixed(1)
+      : "0";
 
-  const negativePercentage = totalReviews > 0 
-    ? ((negativeCount / totalReviews) * 100).toFixed(1) 
-    : "0";
+  const totalDelta = formatDeltaPercent(currentTotalReviews, priorTotalReviews);
+  const ratingDelta = formatDeltaPts(currentAvgRating, priorAvgRating);
+  const negativeDelta = formatDeltaPercent(
+    currentNegativeCount,
+    priorNegativeCount
+  );
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {/* Total Reviews - clears all filters */}
-      <button
-        onClick={reset}
-        className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:border-blue-300 hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      >
-        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-blue-600">
+      {/* Total Reviews */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Total Reviews
         </dt>
-        <dd className="mt-1 text-kpi font-semibold tracking-tight text-foreground tabular-nums">
+        <dd className="mt-2 text-3xl font-bold tracking-tight text-foreground tabular-nums">
           {totalReviews.toLocaleString()}
         </dd>
-      </button>
+        {totalDelta && (
+          <p className="mt-1.5 text-xs text-muted-foreground">{totalDelta}</p>
+        )}
+      </div>
 
-      {/* Avg Rating - sets ratingBucket="1-2" */}
-      <button
-        onClick={() => setRatingBucket(filter.ratingBucket === "1-2" ? "all" : "1-2")}
-        className={`group bg-white rounded-xl border p-6 text-left hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-          filter.ratingBucket === "1-2" 
-            ? "border-blue-400 ring-1 ring-blue-200" 
-            : "border-gray-200 hover:border-blue-300"
-        }`}
-      >
-        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-blue-600">
+      {/* Avg Rating */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Avg Rating
         </dt>
-        <dd className="mt-1 text-kpi font-semibold tracking-tight text-foreground tabular-nums">
+        <dd className="mt-2 text-3xl font-bold tracking-tight text-foreground tabular-nums">
           {avgRating.toFixed(2)}
-          <span className="text-base font-normal text-muted-foreground ml-1">/ 5</span>
+          <span className="text-base font-normal text-muted-foreground ml-1">
+            / 5
+          </span>
         </dd>
-      </button>
+        {ratingDelta && (
+          <p className="mt-1.5 text-xs text-muted-foreground">{ratingDelta}</p>
+        )}
+      </div>
 
-      {/* Negative Reviews - sets ratingBucket="1-2" */}
-      <button
-        onClick={() => setRatingBucket(filter.ratingBucket === "1-2" ? "all" : "1-2")}
-        className={`group bg-white rounded-xl border p-6 text-left hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-          filter.ratingBucket === "1-2" 
-            ? "border-blue-400 ring-1 ring-blue-200" 
-            : "border-gray-200 hover:border-blue-300"
-        }`}
-      >
-        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-red-600">
+      {/* Negative Reviews */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Negative Reviews
         </dt>
-        <dd className="mt-1 text-kpi font-semibold tracking-tight text-red-600 tabular-nums">
+        <dd className="mt-2 text-3xl font-bold tracking-tight text-foreground tabular-nums">
           {negativeCount.toLocaleString()}
-          <span className="text-base font-normal text-muted-foreground ml-1">
-            ({negativePercentage}%)
+          <span className="text-base font-normal text-muted-foreground ml-2">
+            {negativePercentage}%
           </span>
         </dd>
-      </button>
+        {negativeDelta && (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {negativeDelta}
+          </p>
+        )}
+      </div>
 
-      {/* Volume Spikes - scrolls to Zone 5 */}
-      <button
-        onClick={onScrollToSpikes}
-        className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:border-amber-300 hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-      >
-        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-amber-600">
+      {/* Volume Spikes */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Volume Spikes
         </dt>
-        <dd className="mt-1 text-kpi font-semibold tracking-tight text-amber-600 tabular-nums">
+        <dd className="mt-2 text-3xl font-bold tracking-tight text-foreground tabular-nums">
           {spikeCount}
-          <span className="text-base font-normal text-muted-foreground ml-1">
-            detected
+          <span className="text-base font-normal text-muted-foreground ml-2">
+            Detected
           </span>
         </dd>
-      </button>
+        <p className="mt-1.5 text-xs text-muted-foreground">Trend stable</p>
+      </div>
     </div>
   );
 }
