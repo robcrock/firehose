@@ -237,7 +237,7 @@ export function VolumeSpikesChart({
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.isSpike ? "#f59e0b" : "#9ca3af"}
-                      opacity={isDimmed ? 0.15 : 1}
+                      opacity={isDimmed ? 0.15 : 0.8}
                       style={{ transition: "opacity 150ms ease" }}
                     />
                   );

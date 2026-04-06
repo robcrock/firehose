@@ -83,9 +83,16 @@ function DashboardContent({
     return getWeeklySentiment(filteredReviews);
   }, [filteredReviews]);
 
+  const effectiveWindowDays = useMemo(() => {
+    if (typeof filter.timeRange === "string") {
+      return filter.timeRange === "7d" ? 7 : filter.timeRange === "30d" ? 30 : windowDays;
+    }
+    return windowDays;
+  }, [filter.timeRange, windowDays]);
+
   const dailyCountsWithSpikes = useMemo(() => {
-    return getDailyCountsWithSpikes(filteredReviews, windowDays, generatedAt);
-  }, [filteredReviews, windowDays, generatedAt]);
+    return getDailyCountsWithSpikes(filteredReviews, effectiveWindowDays, generatedAt);
+  }, [filteredReviews, effectiveWindowDays, generatedAt]);
 
   const appComparison = useMemo(() => {
     return getAppComparison(filteredReviews);
