@@ -11,33 +11,55 @@ const CATEGORY_LABELS: Record<string, string> = {
   bug: "Bugs",
   feature_request: "Features",
   clinical_concern: "Clinical",
-  positive: "Positive",
   other: "Other",
 };
 
-// Monochrome grayscale ramp — darkest for largest category, lighter for smaller
+// Monochrome grayscale ramp — darkest for largest actionable category, lighter for smaller
 const GRAY_PALETTE = [
   "#1a1a1a",
   "#525252",
   "#a3a3a3",
   "#d4d4d4",
-  "#e5e5e5",
 ];
 
 export function CategoryBreakdownChart({ data }: Props) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  const total = data.reduce((sum, d) => sum + d.count, 0);
+  // Merge "positive" into "other"
+  const merged = data.reduce<Record<string, number>>((acc, d) => {
+    const key = d.category === "positive" ? "other" : d.category;
+    acc[key] = (acc[key] ?? 0) + d.count;
+    return acc;
+  }, {});
 
-  // Sort descending by count so largest category gets the darkest shade
-  const sorted = [...data].sort((a, b) => b.count - a.count);
+  const total = Object.values(merged).reduce((sum, c) => sum + c, 0);
 
-  const chartData = sorted.map((d, i) => ({
-    ...d,
-    label: CATEGORY_LABELS[d.category] || d.category,
-    fill: GRAY_PALETTE[i] ?? GRAY_PALETTE[GRAY_PALETTE.length - 1],
-    widthPct: total > 0 ? (d.count / total) * 100 : 0,
-  }));
+  // Separate "other" from actionable categories, sort actionable by count desc
+  const actionable = Object.entries(merged)
+    .filter(([cat]) => cat !== "other")
+    .sort(([, a], [, b]) => b - a);
+
+  const otherCount = merged["other"] ?? 0;
+
+  // Build chart data: actionable categories sorted desc, then "other" pinned at the end
+  const chartData = [
+    ...actionable.map(([cat, count], i) => ({
+      category: cat,
+      count,
+      label: CATEGORY_LABELS[cat] || cat,
+      fill: GRAY_PALETTE[i] ?? GRAY_PALETTE[GRAY_PALETTE.length - 1],
+      percentage: total > 0 ? Number(((count / total) * 100).toFixed(1)) : 0,
+      widthPct: total > 0 ? (count / total) * 100 : 0,
+    })),
+    {
+      category: "other",
+      count: otherCount,
+      label: "Other",
+      fill: GRAY_PALETTE[GRAY_PALETTE.length - 1],
+      percentage: total > 0 ? Number(((otherCount / total) * 100).toFixed(1)) : 0,
+      widthPct: total > 0 ? (otherCount / total) * 100 : 0,
+    },
+  ];
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
