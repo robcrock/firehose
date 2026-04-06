@@ -1,12 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-} from "recharts";
+import { useState } from "react";
 import type { CategoryCount } from "@/lib/types";
 
 type Props = {
@@ -31,12 +25,7 @@ const GRAY_PALETTE = [
 ];
 
 export function CategoryBreakdownChart({ data }: Props) {
-  const [mounted, setMounted] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const total = data.reduce((sum, d) => sum + d.count, 0);
 
@@ -47,88 +36,36 @@ export function CategoryBreakdownChart({ data }: Props) {
     ...d,
     label: CATEGORY_LABELS[d.category] || d.category,
     fill: GRAY_PALETTE[i] ?? GRAY_PALETTE[GRAY_PALETTE.length - 1],
+    widthPct: total > 0 ? (d.count / total) * 100 : 0,
   }));
-
-  const onPieEnter = useCallback((_: unknown, index: number) => {
-    setActiveIndex(index);
-  }, []);
-
-  const onPieLeave = useCallback(() => {
-    setActiveIndex(null);
-  }, []);
-
-  const activeEntry = activeIndex !== null ? chartData[activeIndex] : null;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="mb-2">
+      <div className="mb-4">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
           Category Distribution
         </h3>
       </div>
 
-      {/* Donut */}
-      <div className="w-full flex justify-center">
-        {mounted && (
-          <div className="relative w-[200px] h-[200px]">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  dataKey="count"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  startAngle={90}
-                  endAngle={-270}
-                  paddingAngle={2}
-                  strokeWidth={0}
-                  isAnimationActive={false}
-                  onMouseEnter={onPieEnter}
-                  onMouseLeave={onPieLeave}
-                >
-                  {chartData.map((entry, index) => {
-                    const isActive = activeIndex === index;
-                    const isDimmed = activeIndex !== null && !isActive;
-                    return (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.fill}
-                        opacity={isDimmed ? 0.3 : 1}
-                        stroke={isActive ? entry.fill : "none"}
-                        strokeWidth={isActive ? 4 : 0}
-                        style={{ transition: "opacity 150ms ease" }}
-                      />
-                    );
-                  })}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            {/* Center label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              {activeEntry ? (
-                <>
-                  <span className="text-2xl font-bold text-foreground tabular-nums">
-                    {activeEntry.percentage}%
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {activeEntry.label}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-2xl font-bold text-foreground tabular-nums">
-                    {total.toLocaleString()}
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Total
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+      {/* Stacked horizontal bar */}
+      <div className="flex w-full h-3 rounded-full overflow-hidden">
+        {chartData.map((d, i) => {
+          const isActive = activeIndex === i;
+          const isDimmed = activeIndex !== null && !isActive;
+          return (
+            <div
+              key={d.category}
+              className="h-full transition-opacity duration-150 first:rounded-l-full last:rounded-r-full"
+              style={{
+                width: `${d.widthPct}%`,
+                backgroundColor: d.fill,
+                opacity: isDimmed ? 0.25 : 1,
+              }}
+              onMouseEnter={() => setActiveIndex(i)}
+              onMouseLeave={() => setActiveIndex(null)}
+            />
+          );
+        })}
       </div>
 
       {/* Legend */}
