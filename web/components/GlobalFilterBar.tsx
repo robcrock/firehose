@@ -311,22 +311,7 @@ export function GlobalFilterBar({ apps, totalFilteredCount }: Props) {
 
   return (
     <div className="bg-gray-50">
-      <div className="flex items-center justify-between">
-        {/* Left: review count + active filter summary */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm leading-snug text-muted-foreground">
-            <span className="font-semibold text-foreground tabular-nums">
-              {totalFilteredCount.toLocaleString()}
-            </span>{" "}
-            reviews
-          </span>
-          {hasActiveFilters && filterSummary && (
-            <span className="text-xs text-muted-foreground">
-              · {filterSummary}
-            </span>
-          )}
-        </div>
-
+      <div className="flex items-center justify-end">
         {/* Right: Filters + Export buttons */}
         <div className="flex items-center gap-2">
           <Button
