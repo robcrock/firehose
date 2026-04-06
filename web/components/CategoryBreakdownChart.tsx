@@ -1,19 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Bar,
-  BarChart,
   Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
-import { X } from "lucide-react";
-import type { CategoryCount, ReviewCategory } from "@/lib/types";
-import { CATEGORY_CONFIG } from "@/lib/analytics";
-import { useFilter } from "@/lib/filter-context";
+import type { CategoryCount } from "@/lib/types";
 
 type Props = {
   data: CategoryCount[];
@@ -27,147 +21,159 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+// Monochrome grayscale ramp — darkest for largest category, lighter for smaller
+const GRAY_PALETTE = [
+  "#1a1a1a",
+  "#525252",
+  "#a3a3a3",
+  "#d4d4d4",
+  "#e5e5e5",
+];
+
 export function CategoryBreakdownChart({ data }: Props) {
   const [mounted, setMounted] = useState(false);
-  const { filter, toggleCategory, setCategories } = useFilter();
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleCategoryClick = (category: ReviewCategory) => {
-    toggleCategory(category);
-  };
+  const total = data.reduce((sum, d) => sum + d.count, 0);
 
-  const clearCategories = () => {
-    setCategories([]);
-  };
+  // Sort descending by count so largest category gets the darkest shade
+  const sorted = [...data].sort((a, b) => b.count - a.count);
 
-  const isSelected = (category: ReviewCategory) =>
-    filter.categories.includes(category);
-
-  const hasActiveFilter = filter.categories.length > 0;
-
-  const chartData = data.map((d) => ({
+  const chartData = sorted.map((d, i) => ({
     ...d,
     label: CATEGORY_LABELS[d.category] || d.category,
-    color: CATEGORY_CONFIG[d.category]?.color || "#6b7280",
+    fill: GRAY_PALETTE[i] ?? GRAY_PALETTE[GRAY_PALETTE.length - 1],
   }));
+
+  const onPieEnter = useCallback((_: unknown, index: number) => {
+    setActiveIndex(index);
+  }, []);
+
+  const onPieLeave = useCallback(() => {
+    setActiveIndex(null);
+  }, []);
+
+  const activeEntry = activeIndex !== null ? chartData[activeIndex] : null;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-title font-semibold tracking-tight text-foreground">
-            Category Distribution
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            Click to filter
-          </p>
-        </div>
-        {hasActiveFilter && (
-          <button
-            onClick={clearCategories}
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-          >
-            <X className="w-3 h-3" />
-            Clear filter
-          </button>
-        )}
+      <div className="mb-2">
+        <h3 className="text-title font-semibold tracking-tight text-foreground">
+          Category Distribution
+        </h3>
       </div>
-      <div className="w-full h-[200px]">
+
+      {/* Donut */}
+      <div className="w-full flex justify-center">
         {mounted && (
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
-            >
-              <XAxis type="number" hide />
-              <YAxis
-                type="category"
-                dataKey="label"
-                tick={{ fontSize: 11, fill: "#374151" }}
-                tickLine={false}
-                axisLine={false}
-                width={60}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                }}
-                formatter={(value, _name, item) => {
-                  const payload = (item as { payload?: { percentage: number } })
-                    .payload;
-                  const pct = payload?.percentage;
-                  return [
-                    pct != null ? `${value} (${pct}%)` : String(value),
-                    "Reviews",
-                  ];
-                }}
-              />
-              <Bar
-                dataKey="count"
-                radius={[0, 4, 4, 0]}
-                barSize={24}
-                cursor="pointer"
-                onClick={(data) => {
-                  const payload = (
-                    data as { payload?: { category: ReviewCategory } }
-                  ).payload;
-                  if (payload) handleCategoryClick(payload.category);
-                }}
-                label={{
-                  position: "right",
-                  fontSize: 10,
-                  fill: "#6b7280",
-                  formatter: (label) => label,
-                }}
-              >
-                {chartData.map((entry, index) => {
-                  const selected = isSelected(entry.category);
-                  const dimmed = hasActiveFilter && !selected;
-                  return (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      opacity={dimmed ? 0.25 : 1}
-                      className="transition-opacity duration-200"
-                    />
-                  );
-                })}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="relative w-[200px] h-[200px]">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="count"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={2}
+                  strokeWidth={0}
+                  isAnimationActive={false}
+                  onMouseEnter={onPieEnter}
+                  onMouseLeave={onPieLeave}
+                >
+                  {chartData.map((entry, index) => {
+                    const isActive = activeIndex === index;
+                    const isDimmed = activeIndex !== null && !isActive;
+                    return (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.fill}
+                        opacity={isDimmed ? 0.3 : 1}
+                        stroke={isActive ? entry.fill : "none"}
+                        strokeWidth={isActive ? 4 : 0}
+                        style={{ transition: "opacity 150ms ease" }}
+                      />
+                    );
+                  })}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Center label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              {activeEntry ? (
+                <>
+                  <span className="text-2xl font-bold text-foreground tabular-nums">
+                    {activeEntry.percentage}%
+                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {activeEntry.label}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl font-bold text-foreground tabular-nums">
+                    {total.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Total
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
         )}
       </div>
+
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
-        {chartData.map((d) => {
-          const selected = isSelected(d.category as ReviewCategory);
-          const dimmed = hasActiveFilter && !selected;
+      <div className="mt-4 space-y-0.5">
+        {chartData.map((d, i) => {
+          const isActive = activeIndex === i;
+          const isDimmed = activeIndex !== null && !isActive;
           return (
-            <button
+            <div
               key={d.category}
-              onClick={() => handleCategoryClick(d.category as ReviewCategory)}
-              className={`flex items-center gap-1.5 transition-opacity duration-200 hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 rounded px-1 -mx-1 ${
-                dimmed ? "opacity-25" : ""
-              }`}
-              aria-pressed={selected}
+              className="flex items-center justify-between rounded-md px-2 py-2 -mx-2 cursor-default transition-colors hover:bg-gray-50"
+              onMouseEnter={() => setActiveIndex(i)}
+              onMouseLeave={() => setActiveIndex(null)}
             >
-              <div
-                className={`w-2.5 h-2.5 rounded-sm transition-all ${
-                  selected ? "ring-2 ring-offset-1 ring-blue-500" : ""
-                }`}
-                style={{ backgroundColor: d.color }}
-              />
-              <span className="text-xs text-gray-600">
-                {d.label} ({d.percentage}%)
-              </span>
-            </button>
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-2.5 h-2.5 rounded-full transition-opacity duration-150"
+                  style={{
+                    backgroundColor: d.fill,
+                    opacity: isDimmed ? 0.3 : 1,
+                  }}
+                />
+                <span
+                  className="text-sm transition-colors duration-150"
+                  style={{
+                    color: isDimmed ? "#d4d4d4" : "#1a1a1a",
+                  }}
+                >
+                  {d.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {isActive && (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {d.percentage}%
+                  </span>
+                )}
+                <span
+                  className="text-sm font-semibold tabular-nums transition-colors duration-150"
+                  style={{
+                    color: isDimmed ? "#d4d4d4" : "#1a1a1a",
+                  }}
+                >
+                  {d.count}
+                </span>
+              </div>
+            </div>
           );
         })}
       </div>

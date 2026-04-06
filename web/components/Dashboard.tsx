@@ -113,8 +113,10 @@ function DashboardContent({
       />
 
       {/* Zone 3: Overview - Trends + Distribution */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SentimentTrendChart data={weeklySentiment} />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-3">
+          <SentimentTrendChart data={weeklySentiment} />
+        </div>
         <CategoryBreakdownChart data={categoryBreakdown} />
       </div>
 

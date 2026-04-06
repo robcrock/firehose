@@ -24,7 +24,7 @@ export function SentimentTrendChart({ data }: Props) {
   }, []);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 pb-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 pb-4 flex flex-col h-full">
       <div className="mb-3">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
           Sentiment Trend
@@ -33,9 +33,9 @@ export function SentimentTrendChart({ data }: Props) {
           Weekly average rating across all platforms
         </p>
       </div>
-      <div className="w-full h-[220px]">
+      <div className="w-full flex-1 min-h-[200px]">
         {mounted && (
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data}
               margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
