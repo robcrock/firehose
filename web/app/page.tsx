@@ -32,13 +32,13 @@ export default async function Home() {
     <div className="min-h-screen bg-gray-50">
       <main className="mx-auto max-w-7xl px-6 py-8">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+          <h1 className="text-display font-semibold tracking-tight text-foreground">
             Product Feedback Dashboard
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
             FreeStyle Libre app reviews from the last {data.windowDays} days
-            <span className="mx-2 text-gray-300">|</span>
-            <span className="text-gray-400">
+            <span className="mx-2 text-border">|</span>
+            <span className="text-muted-foreground/80">
               Updated {data.generatedAt.slice(0, 10)}
             </span>
           </p>

@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { useState } from "react";
+import { SlidersHorizontal, Download, X, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { useFilter } from "@/lib/filter-context";
 import type { ReviewCategory, AppStats } from "@/lib/types";
 import { CATEGORY_CONFIG } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 
 type Props = {
   apps: AppStats[];
@@ -12,22 +22,22 @@ type Props = {
 };
 
 const TIME_RANGE_OPTIONS = [
-  { value: "7d", label: "Last 7 days" },
-  { value: "30d", label: "Last 30 days" },
-  { value: "90d", label: "Last 90 days" },
+  { value: "7d", label: "7d" },
+  { value: "30d", label: "30d" },
+  { value: "90d", label: "90d" },
 ] as const;
 
 const OS_OPTIONS = [
-  { value: "all", label: "All platforms" },
+  { value: "all", label: "All" },
   { value: "ios", label: "iOS" },
   { value: "android", label: "Android" },
 ] as const;
 
 const RATING_OPTIONS = [
-  { value: "all", label: "All ratings" },
-  { value: "1-2", label: "1-2 stars" },
-  { value: "3", label: "3 stars" },
-  { value: "4-5", label: "4-5 stars" },
+  { value: "all", label: "All" },
+  { value: "1-2", label: "1-2 ★" },
+  { value: "3", label: "3 ★" },
+  { value: "4-5", label: "4-5 ★" },
 ] as const;
 
 const CATEGORY_ORDER: ReviewCategory[] = [
@@ -38,100 +48,98 @@ const CATEGORY_ORDER: ReviewCategory[] = [
   "other",
 ];
 
-type DropdownProps = {
-  label: string;
-  value: string;
-  isActive?: boolean;
-  children: React.ReactNode;
+/* ── Segmented Control ─────────────────────────────────── */
+
+type SegmentedControlProps<T extends string> = {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
 };
 
-function Dropdown({ label, value, isActive, children }: DropdownProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: SegmentedControlProps<T>) {
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-          isActive
-            ? "bg-blue-600 text-white border-blue-600"
-            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-        }`}
-      >
-        <span className="font-medium">{value}</span>
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 z-20 min-w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-          {children}
-        </div>
-      )}
+    <div className="inline-flex items-center rounded-lg border border-input bg-background p-0.5">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={cn(
+            "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+            value === opt.value
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-type MultiSelectDropdownProps = {
+/* ── Multi-Select Popover ──────────────────────────────── */
+
+type MultiSelectPopoverProps = {
   label: string;
-  selectedCount: number;
-  placeholder: string;
+  activeCount: number;
+  onClear: () => void;
   children: React.ReactNode;
 };
 
-function MultiSelectDropdown({
-  selectedCount,
-  placeholder,
+function MultiSelectPopover({
+  label,
+  activeCount,
+  onClear,
   children,
-}: MultiSelectDropdownProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const isActive = selectedCount > 0;
-  const displayText = isActive ? `${selectedCount} selected` : placeholder;
+}: MultiSelectPopoverProps) {
+  const triggerLabel =
+    activeCount > 0 ? `${label} (${activeCount})` : label;
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-          isActive
-            ? "bg-blue-600 text-white border-blue-600"
-            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-        }`}
-      >
-        <span className="font-medium">{displayText}</span>
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 z-20 min-w-[200px] bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-          {children}
+    <Popover>
+      <PopoverTrigger
+        render={
+          <Button
+            variant={activeCount > 0 ? "default" : "outline"}
+            size="sm"
+          >
+            {triggerLabel}
+          </Button>
+        }
+      />
+      <PopoverContent align="start" className="w-56 p-0">
+        <div className="flex items-center justify-between px-3 py-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            {label}
+          </span>
+          {activeCount > 0 && (
+            <button
+              onClick={onClear}
+              className="text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
+          )}
         </div>
-      )}
-    </div>
+        <Separator />
+        <div className="p-1">{children}</div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
-export function GlobalFilterBar({ apps, totalFilteredCount }: Props) {
+/* ── Filter Panel ──────────────────────────────────────── */
+
+type FilterPanelProps = {
+  open: boolean;
+  apps: AppStats[];
+};
+
+function FilterPanel({ open, apps }: FilterPanelProps) {
   const {
     filter,
     setTimeRange,
@@ -144,205 +152,201 @@ export function GlobalFilterBar({ apps, totalFilteredCount }: Props) {
     setKeyword,
     reset,
     hasActiveFilters,
-    filterSummary,
   } = useFilter();
 
-  const [scrolled, setScrolled] = useState(false);
+  const [keywordDraft, setKeywordDraft] = useState(filter.activeKeyword ?? "");
 
-  useEffect(() => {
-    function handleScroll() {
-      setScrolled(window.scrollY > 20);
-    }
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const timeRangeLabel =
-    typeof filter.timeRange === "string"
-      ? TIME_RANGE_OPTIONS.find((o) => o.value === filter.timeRange)?.label || filter.timeRange
-      : `${filter.timeRange.start} - ${filter.timeRange.end}`;
-
-  const osLabel = OS_OPTIONS.find((o) => o.value === filter.os)?.label || "All platforms";
-  const ratingLabel = RATING_OPTIONS.find((o) => o.value === filter.ratingBucket)?.label || "All ratings";
+  if (!open) return null;
 
   return (
-    <div
-      className={`sticky top-0 z-10 bg-gray-50 transition-shadow ${
-        scrolled ? "shadow-md" : ""
-      }`}
-    >
-      <div className="flex flex-wrap items-center gap-2 py-3">
-        {/* Time Range */}
-        <Dropdown
-          label="Time"
-          value={timeRangeLabel}
-          isActive={typeof filter.timeRange === "object"}
-        >
-          {TIME_RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setTimeRange(opt.value)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                filter.timeRange === opt.value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </Dropdown>
-
-        {/* Apps Multi-Select */}
-        <MultiSelectDropdown
-          label="Apps"
-          selectedCount={filter.apps.length}
-          placeholder="All apps"
-        >
-          <div className="px-3 py-2 border-b border-gray-100">
-            <button
-              onClick={() => setApps([])}
-              className="text-xs text-blue-600 hover:text-blue-800"
-            >
-              Clear selection
-            </button>
+    <div className="border-t border-border pt-4 pb-2 mt-3 space-y-4">
+      {/* Row 1: Segmented controls */}
+      <div className="flex flex-wrap items-center gap-6">
+        <div className="space-y-1.5">
+          <span className="text-overline font-semibold uppercase tracking-wider text-muted-foreground">
+            Period
+          </span>
+          <div className="block">
+            <SegmentedControl
+              options={TIME_RANGE_OPTIONS}
+              value={
+                typeof filter.timeRange === "string" ? filter.timeRange : "90d"
+              }
+              onChange={(v) => setTimeRange(v as "7d" | "30d" | "90d")}
+            />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <span className="text-overline font-semibold uppercase tracking-wider text-muted-foreground">
+            Platform
+          </span>
+          <div className="block">
+            <SegmentedControl
+              options={OS_OPTIONS}
+              value={filter.os}
+              onChange={(v) => setOS(v as typeof filter.os)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <span className="text-overline font-semibold uppercase tracking-wider text-muted-foreground">
+            Rating
+          </span>
+          <div className="block">
+            <SegmentedControl
+              options={RATING_OPTIONS}
+              value={filter.ratingBucket}
+              onChange={(v) => setRatingBucket(v as typeof filter.ratingBucket)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Multi-selects + keyword */}
+      <div className="flex flex-wrap items-end gap-3">
+        {/* Apps */}
+        <MultiSelectPopover
+          label="Apps"
+          activeCount={filter.apps.length}
+          onClear={() => setApps([])}
+        >
           {apps.map((app) => (
             <button
               key={app.app}
               onClick={() => toggleApp(app.app)}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
             >
-              <div
-                className={`w-4 h-4 rounded border flex items-center justify-center ${
-                  filter.apps.includes(app.app)
-                    ? "bg-blue-600 border-blue-600"
-                    : "border-gray-300"
-                }`}
-              >
-                {filter.apps.includes(app.app) && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className={filter.apps.includes(app.app) ? "text-blue-700 font-medium" : "text-gray-700"}>
-                {app.displayName.replace(/FreeStyle\s*/gi, "").replace(/\s*\(US\)/gi, "")}
+              <Checkbox
+                checked={filter.apps.includes(app.app)}
+                tabIndex={-1}
+                className="pointer-events-none"
+              />
+              <span className="text-foreground">
+                {app.displayName
+                  .replace(/FreeStyle\s*/gi, "")
+                  .replace(/\s*\(US\)/gi, "")}
               </span>
             </button>
           ))}
-        </MultiSelectDropdown>
+        </MultiSelectPopover>
 
-        {/* Platform */}
-        <Dropdown label="Platform" value={osLabel} isActive={filter.os !== "all"}>
-          {OS_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setOS(opt.value as typeof filter.os)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                filter.os === opt.value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </Dropdown>
-
-        {/* Categories Multi-Select */}
-        <MultiSelectDropdown
-          label="Category"
-          selectedCount={filter.categories.length}
-          placeholder="All categories"
+        {/* Categories */}
+        <MultiSelectPopover
+          label="Categories"
+          activeCount={filter.categories.length}
+          onClear={() => setCategories([])}
         >
-          <div className="px-3 py-2 border-b border-gray-100">
-            <button
-              onClick={() => setCategories([])}
-              className="text-xs text-blue-600 hover:text-blue-800"
-            >
-              Clear selection
-            </button>
-          </div>
           {CATEGORY_ORDER.map((cat) => (
             <button
               key={cat}
               onClick={() => toggleCategory(cat)}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
             >
-              <div
-                className={`w-4 h-4 rounded border flex items-center justify-center ${
-                  filter.categories.includes(cat)
-                    ? "bg-blue-600 border-blue-600"
-                    : "border-gray-300"
-                }`}
-              >
-                {filter.categories.includes(cat) && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: CATEGORY_CONFIG[cat].color }}
+              <Checkbox
+                checked={filter.categories.includes(cat)}
+                tabIndex={-1}
+                className="pointer-events-none"
               />
-              <span className={filter.categories.includes(cat) ? "text-blue-700 font-medium" : "text-gray-700"}>
+              <span className="text-foreground">
                 {CATEGORY_CONFIG[cat].label}
               </span>
             </button>
           ))}
-        </MultiSelectDropdown>
+        </MultiSelectPopover>
 
-        {/* Rating */}
-        <Dropdown label="Rating" value={ratingLabel} isActive={filter.ratingBucket !== "all"}>
-          {RATING_OPTIONS.map((opt) => (
+        {/* Keyword search */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search keyword…"
+            value={keywordDraft}
+            onChange={(e) => setKeywordDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setKeyword(keywordDraft.trim() || null);
+              }
+            }}
+            className="h-7 w-40 pl-8 text-xs"
+          />
+          {filter.activeKeyword && (
             <button
-              key={opt.value}
-              onClick={() => setRatingBucket(opt.value as typeof filter.ratingBucket)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                filter.ratingBucket === opt.value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </Dropdown>
-
-        {/* Active Keyword Chip */}
-        {filter.activeKeyword && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white">
-            <span className="font-medium">{`"${filter.activeKeyword}"`}</span>
-            <button
-              onClick={() => setKeyword(null)}
-              className="p-0.5 hover:bg-blue-700 rounded"
-              aria-label="Clear keyword filter"
+              onClick={() => {
+                setKeyword(null);
+                setKeywordDraft("");
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear keyword"
             >
               <X className="w-3 h-3" />
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Summary + Clear */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              reset();
+              setKeywordDraft("");
+            }}
+          >
+            Clear all
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Bar ──────────────────────────────────────────── */
+
+export function GlobalFilterBar({ apps, totalFilteredCount }: Props) {
+  const { hasActiveFilters, filterSummary } = useFilter();
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  return (
+    <div className="bg-gray-50">
+      <div className="flex items-center justify-between">
+        {/* Left: review count + active filter summary */}
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900 tabular-nums">
+          <span className="text-sm leading-snug text-muted-foreground">
+            <span className="font-semibold text-foreground tabular-nums">
               {totalFilteredCount.toLocaleString()}
             </span>{" "}
             reviews
-            {filterSummary && (
-              <span className="text-gray-400"> · {filterSummary}</span>
-            )}
           </span>
-          {hasActiveFilters && (
-            <button
-              onClick={reset}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Clear all
-            </button>
+          {hasActiveFilters && filterSummary && (
+            <span className="text-xs text-muted-foreground">
+              · {filterSummary}
+            </span>
           )}
         </div>
+
+        {/* Right: Filters + Export buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={panelOpen || hasActiveFilters ? "default" : "outline"}
+            onClick={() => setPanelOpen(!panelOpen)}
+          >
+            <SlidersHorizontal />
+            Filters
+            {hasActiveFilters && !panelOpen && (
+              <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+            )}
+          </Button>
+          <Button variant="outline">
+            <Download />
+            Export CSV
+          </Button>
+        </div>
       </div>
+
+      <FilterPanel open={panelOpen} apps={apps} />
     </div>
   );
 }

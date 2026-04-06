@@ -72,7 +72,7 @@ function AppDrawer({ app, painPoints, miniTrendData, onFilterToApp }: AppDrawerP
       <div className="grid grid-cols-2 gap-4">
         {/* Pain Points */}
         <div>
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+          <h4 className="text-overline font-semibold text-muted-foreground uppercase tracking-wide mb-2">
             Top Pain Points
           </h4>
           {painPoints.length === 0 ? (
@@ -90,7 +90,7 @@ function AppDrawer({ app, painPoints, miniTrendData, onFilterToApp }: AppDrawerP
         </div>
         {/* Mini Trend */}
         <div>
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+          <h4 className="text-overline font-semibold text-muted-foreground uppercase tracking-wide mb-2">
             Sentiment Trend
           </h4>
           <div className="bg-white rounded border border-gray-100 p-2">
@@ -159,8 +159,10 @@ export function AppComparisonChart({ data, allReviews }: Props) {
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">App Comparison</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h3 className="text-title font-semibold tracking-tight text-foreground">
+            App Comparison
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
             Pain score = (5 - avg rating) x volume / 10
           </p>
         </div>

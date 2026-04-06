@@ -38,10 +38,10 @@ export function TopPhrasesPanel({ data, onScrollToReviews }: Props) {
 	if (data.length === 0) {
 		return (
 			<div className="bg-white rounded-xl border border-gray-200 p-6">
-				<h3 className="text-base font-semibold text-gray-900 mb-2">
+				<h3 className="text-title font-semibold tracking-tight text-foreground mb-2">
 					Top Pain Points
 				</h3>
-				<p className="text-sm text-gray-500">
+				<p className="text-sm text-muted-foreground leading-relaxed">
 					No phrases found in low-rated reviews.
 				</p>
 			</div>
@@ -55,10 +55,12 @@ export function TopPhrasesPanel({ data, onScrollToReviews }: Props) {
 		<div className="bg-white rounded-xl border border-gray-200 p-6">
 			<div className="flex items-center justify-between mb-4">
 				<div>
-					<h3 className="text-base font-semibold text-gray-900">
+					<h3 className="text-title font-semibold tracking-tight text-foreground">
 						Top Pain Points
 					</h3>
-					<p className="text-xs text-gray-500 mt-0.5">From 1-2 star reviews</p>
+					<p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+						From 1-2 star reviews
+					</p>
 				</div>
 				{hasActiveFilter && (
 					<button

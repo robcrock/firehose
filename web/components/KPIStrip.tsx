@@ -30,10 +30,10 @@ export function KPIStrip({
         onClick={reset}
         className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:border-blue-300 hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
-        <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500 group-hover:text-blue-600">
+        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-blue-600">
           Total Reviews
         </dt>
-        <dd className="mt-1 text-[32px] font-semibold text-gray-900 tabular-nums">
+        <dd className="mt-1 text-kpi font-semibold tracking-tight text-foreground tabular-nums">
           {totalReviews.toLocaleString()}
         </dd>
       </button>
@@ -47,12 +47,12 @@ export function KPIStrip({
             : "border-gray-200 hover:border-blue-300"
         }`}
       >
-        <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500 group-hover:text-blue-600">
+        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-blue-600">
           Avg Rating
         </dt>
-        <dd className="mt-1 text-[32px] font-semibold text-gray-900 tabular-nums">
+        <dd className="mt-1 text-kpi font-semibold tracking-tight text-foreground tabular-nums">
           {avgRating.toFixed(2)}
-          <span className="text-base font-normal text-gray-400 ml-1">/ 5</span>
+          <span className="text-base font-normal text-muted-foreground ml-1">/ 5</span>
         </dd>
       </button>
 
@@ -65,12 +65,12 @@ export function KPIStrip({
             : "border-gray-200 hover:border-blue-300"
         }`}
       >
-        <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500 group-hover:text-red-600">
+        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-red-600">
           Negative Reviews
         </dt>
-        <dd className="mt-1 text-[32px] font-semibold text-red-600 tabular-nums">
+        <dd className="mt-1 text-kpi font-semibold tracking-tight text-red-600 tabular-nums">
           {negativeCount.toLocaleString()}
-          <span className="text-base font-normal text-gray-400 ml-1">
+          <span className="text-base font-normal text-muted-foreground ml-1">
             ({negativePercentage}%)
           </span>
         </dd>
@@ -81,12 +81,12 @@ export function KPIStrip({
         onClick={onScrollToSpikes}
         className="group bg-white rounded-xl border border-gray-200 p-6 text-left hover:border-amber-300 hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
-        <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500 group-hover:text-amber-600">
+        <dt className="text-overline font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-amber-600">
           Volume Spikes
         </dt>
-        <dd className="mt-1 text-[32px] font-semibold text-amber-600 tabular-nums">
+        <dd className="mt-1 text-kpi font-semibold tracking-tight text-amber-600 tabular-nums">
           {spikeCount}
-          <span className="text-base font-normal text-gray-400 ml-1">
+          <span className="text-base font-normal text-muted-foreground ml-1">
             detected
           </span>
         </dd>

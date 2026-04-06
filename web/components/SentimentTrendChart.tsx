@@ -58,8 +58,12 @@ export function SentimentTrendChart({ data }: Props) {
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Sentiment Trend</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Weekly average rating</p>
+          <h3 className="text-title font-semibold tracking-tight text-foreground">
+            Sentiment Trend
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            Weekly average rating
+          </p>
         </div>
         {hasCustomRange && (
           <button

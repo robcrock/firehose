@@ -210,14 +210,16 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
         {/* Header */}
         <div className="flex flex-col gap-4 mb-4">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-base font-semibold text-gray-900">
-              <span className="text-2xl tabular-nums">
+            <h2 className="text-title font-semibold tracking-tight text-foreground">
+              <span className="text-kpi font-semibold tabular-nums">
                 {filtered.length.toLocaleString()}
               </span>{" "}
-              reviews
+              <span className="font-semibold">reviews</span>
             </h2>
             {filterSummary && (
-              <p className="text-sm text-gray-500">{filterSummary}</p>
+              <p className="text-sm text-muted-foreground leading-snug">
+                {filterSummary}
+              </p>
             )}
           </div>
 
