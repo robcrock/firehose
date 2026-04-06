@@ -214,7 +214,7 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
     return (
       <div ref={ref} className="flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col gap-3 mb-3">
+        <div className="flex flex-col gap-3 mb-5">
           {/* Category Tab Strip */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex flex-wrap gap-1.5">

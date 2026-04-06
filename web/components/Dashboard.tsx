@@ -215,7 +215,7 @@ function DashboardContent({
             }
           </TabbedChartCard>
         </div>
-        <div className="flex flex-col gap-6 min-h-0 h-full overflow-y-auto">
+        <div className="flex flex-col gap-6">
           <CategoryBreakdownChart data={categoryBreakdown} />
           <AppComparisonChart data={appComparison} allReviews={filteredReviews} />
           <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />

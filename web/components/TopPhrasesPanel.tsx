@@ -24,14 +24,14 @@ export function TopPhrasesPanel({ data }: Props) {
   const maxCount = Math.max(...data.map((d) => d.count));
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 flex flex-col h-full overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 flex flex-col max-h-[380px] overflow-hidden">
       <div className="px-6 pt-6 pb-3">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
           Pain Points
         </h3>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto pl-6 pr-4 pb-6">
         {data.map((phrase) => (
           <div key={phrase.phrase} className="py-3 space-y-1.5">
             <div className="flex items-start justify-between">

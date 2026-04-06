@@ -62,7 +62,7 @@ export function CategoryBreakdownChart({ data }: Props) {
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 max-h-[380px] flex flex-col overflow-hidden">
       <div className="mb-4">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
           Category Distribution

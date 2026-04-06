@@ -31,7 +31,7 @@ export function AppComparisonChart({ data }: Props) {
     }));
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 max-h-[380px] flex flex-col overflow-hidden">
       <div className="flex items-center gap-1.5 mb-4 relative">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
           App Comparison
