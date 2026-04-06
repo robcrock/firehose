@@ -1,6 +1,7 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { useState } from "react";
+import { Info } from "lucide-react";
 import type { AppStats, ClassifiedReview } from "@/lib/types";
 
 type Props = {
@@ -17,6 +18,7 @@ function getSeverityLabel(painScore: number, maxPain: number): string {
 
 export function AppComparisonChart({ data }: Props) {
   const maxPain = Math.max(...data.map((d) => d.painScore), 1);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   const rows = [...data]
     .sort((a, b) => b.painScore - a.painScore)
@@ -30,72 +32,49 @@ export function AppComparisonChart({ data }: Props) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center gap-1.5 mb-4 relative">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
           App Comparison
         </h3>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border border-border rounded-md px-2.5 py-1">
-          Health Score
-        </span>
+        <div
+          className="relative"
+          onMouseEnter={() => setTooltipOpen(true)}
+          onMouseLeave={() => setTooltipOpen(false)}
+        >
+          <button
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="How is health status determined?"
+          >
+            <Info className="w-3.5 h-3.5" />
+          </button>
+          {tooltipOpen && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 z-20 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs text-muted-foreground leading-relaxed">
+              Health status is based on a pain score: (5 − avg rating) × volume ÷ 10. Apps scoring in the top third are <span className="font-semibold text-foreground">Critical</span>, middle third <span className="font-semibold text-foreground">Warning</span>, and bottom third <span className="font-semibold text-foreground">Stable</span>.
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Table */}
-      <table className="w-full">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground py-2.5 px-3 first:rounded-l-md last:rounded-r-md">
-              App
-            </th>
-            <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground py-2.5 px-3">
-              Pain Score
-            </th>
-            <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground py-2.5 px-3">
-              Avg Rating
-            </th>
-            <th className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground py-2.5 px-3 first:rounded-l-md last:rounded-r-md">
-              Reviews
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((app) => (
-            <tr
-              key={app.app}
-              className="border-b border-border last:border-b-0 transition-colors hover:bg-gray-50/80 cursor-default"
-            >
-              <td className="py-4 px-3">
-                <span className="text-sm font-medium text-foreground">
-                  {app.shortName}
-                </span>
-              </td>
-              <td className="py-4 px-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-bold text-foreground tabular-nums">
-                    {app.painScore}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {app.severityLabel}
-                  </span>
-                </div>
-              </td>
-              <td className="py-4 px-3">
-                <div className="flex items-center gap-1.5">
-                  <Star className="w-3.5 h-3.5 text-muted-foreground fill-muted-foreground" />
-                  <span className="text-sm text-foreground tabular-nums">
-                    {app.avgRating.toFixed(1)}
-                  </span>
-                </div>
-              </td>
-              <td className="py-4 px-3 text-right">
-                <span className="text-sm text-foreground tabular-nums">
-                  {app.count}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
+      <div className="space-y-0.5">
+        {rows.map((app) => (
+          <div
+            key={app.app}
+            className="flex items-center justify-between rounded-md px-2 py-2 -mx-2 cursor-default transition-colors hover:bg-gray-50"
+          >
+            <span className="text-sm text-foreground">
+              {app.shortName}
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                {app.avgRating.toFixed(1)}
+              </span>
+              <span className="text-sm font-semibold text-foreground min-w-[52px] text-right">
+                {app.severityLabel}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

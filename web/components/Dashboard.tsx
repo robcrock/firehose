@@ -187,19 +187,19 @@ function DashboardContent({
         currentNegativeCount={currentHalfKPIs?.negativeCount ?? null}
       />
 
-      {/* Zone 3: Overview - Trends + Distribution */}
+      {/* Zone 3: Overview - Trends + Sidebar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-3">
           <SentimentTrendChart data={weeklySentiment} />
         </div>
-        <CategoryBreakdownChart data={categoryBreakdown} />
+        <div className="flex flex-col gap-6">
+          <CategoryBreakdownChart data={categoryBreakdown} />
+          <AppComparisonChart data={appComparison} allReviews={filteredReviews} />
+        </div>
       </div>
 
-      {/* Zone 4: Zoom - Diagnostic Drill-downs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AppComparisonChart data={appComparison} allReviews={filteredReviews} />
-        <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
-      </div>
+      {/* Zone 4: Top Pain Points */}
+      <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
 
       {/* Zone 5: Volume & Anomaly Detection */}
       <VolumeSpikesChart
