@@ -9,6 +9,7 @@ import { useFilter } from "@/lib/filter-context";
 
 type Props = {
   reviews: ClassifiedReview[];
+  selectedDates?: Set<string>;
 };
 
 function Stars({ rating }: { rating: number }) {
@@ -150,7 +151,7 @@ function ReviewCard({ review, isTriaged, onToggleTriage }: ReviewCardProps) {
 }
 
 export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
-  function ReviewsTable({ reviews }, ref) {
+  function ReviewsTable({ reviews, selectedDates }, ref) {
     const { filter, filterSummary, toggleCategory, setCategories } = useFilter();
     const [localCategory, setLocalCategory] = useState<ReviewCategory | "all">("all");
     const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
@@ -161,9 +162,14 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
       return filterReviews(reviews, filter);
     }, [reviews, filter]);
 
-    // Then apply local category filter (additive on top of global)
+    // Then apply date filter + local category filter (additive on top of global)
     const filtered = useMemo(() => {
       let result = globalFiltered;
+
+      // Apply selected dates filter from volume chart
+      if (selectedDates && selectedDates.size > 0) {
+        result = result.filter((r) => selectedDates.has(r.date.slice(0, 10)));
+      }
 
       // Apply local category filter
       if (localCategory !== "all") {
@@ -185,7 +191,7 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
             return 0;
         }
       });
-    }, [globalFiltered, localCategory, sortOrder]);
+    }, [globalFiltered, localCategory, sortOrder, selectedDates]);
 
     // Calculate category counts for the local filter tabs
     const categoryCounts = useMemo(() => {

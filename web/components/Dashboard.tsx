@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useCallback } from "react";
+import { useRef, useMemo, useCallback, useState } from "react";
 import { GlobalFilterBar } from "./GlobalFilterBar";
 import { KPIStrip } from "./KPIStrip";
 import { SentimentTrendChart } from "./SentimentTrendChart";
@@ -51,6 +51,26 @@ function DashboardContent({
   const { filter } = useFilter();
   const volumeChartRef = useRef<HTMLDivElement>(null);
   const reviewsRef = useRef<HTMLDivElement>(null);
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+
+  const handleDateSelect = useCallback(
+    (date: string) => {
+      setSelectedDates((prev) => {
+        const next = new Set(prev);
+        if (next.has(date)) {
+          next.delete(date);
+        } else {
+          next.add(date);
+        }
+        return next;
+      });
+    },
+    []
+  );
+
+  const clearSelectedDates = useCallback(() => {
+    setSelectedDates(new Set());
+  }, []);
 
   // Filter reviews based on FilterState
   const filteredReviews = useMemo(() => {
@@ -185,11 +205,13 @@ function DashboardContent({
       <VolumeSpikesChart
         ref={volumeChartRef}
         data={dailyCountsWithSpikes}
-        onScrollToReviews={scrollToReviews}
+        selectedDates={selectedDates}
+        onDateToggle={handleDateSelect}
+        onClearDates={clearSelectedDates}
       />
 
       {/* Zone 6: Review List */}
-      <ReviewsTable ref={reviewsRef} reviews={reviews} />
+      <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
     </div>
   );
 }
