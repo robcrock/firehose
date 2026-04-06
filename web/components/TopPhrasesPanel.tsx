@@ -22,7 +22,6 @@ export function TopPhrasesPanel({ data }: Props) {
   }
 
   const maxCount = Math.max(...data.map((d) => d.count));
-  const displayedPhrases = data.slice(0, 7);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -32,8 +31,8 @@ export function TopPhrasesPanel({ data }: Props) {
         </h3>
       </div>
 
-      <div className="divide-y divide-border">
-        {displayedPhrases.map((phrase) => (
+      <div className="divide-y divide-border max-h-[480px] overflow-y-auto pr-3">
+        {data.map((phrase) => (
           <div key={phrase.phrase} className="py-4 first:pt-0 space-y-1.5">
             {/* Phrase name + count */}
             <div className="flex items-start justify-between">
@@ -63,12 +62,6 @@ export function TopPhrasesPanel({ data }: Props) {
         ))}
       </div>
 
-      {/* Analyze CTA */}
-      <div className="mt-6">
-        <button className="w-full py-3 text-sm font-medium text-foreground border border-border rounded-lg hover:bg-gray-50 transition-colors">
-          Analyze all {data.length} phrases
-        </button>
-      </div>
     </div>
   );
 }

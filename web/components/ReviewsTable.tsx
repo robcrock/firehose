@@ -277,7 +277,7 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
             No reviews match the current filters.
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+          <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto pr-3">
             {filtered.map((r) => (
               <ReviewCard
                 key={r.id}

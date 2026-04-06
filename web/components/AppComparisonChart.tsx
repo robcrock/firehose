@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, ChevronRight } from "lucide-react";
+import { Star } from "lucide-react";
 import type { AppStats, ClassifiedReview } from "@/lib/types";
 
 type Props = {
@@ -96,15 +96,6 @@ export function AppComparisonChart({ data }: Props) {
         </tbody>
       </table>
 
-      {/* Footer link */}
-      <div className="mt-4 flex justify-center">
-        <div className="w-full bg-gray-50 rounded-md py-3 flex justify-center">
-          <button className="inline-flex items-center gap-1 text-sm font-medium text-foreground hover:text-muted-foreground transition-colors">
-            View detailed comparison
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

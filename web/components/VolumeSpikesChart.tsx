@@ -104,7 +104,7 @@ export const VolumeSpikesChart = forwardRef<HTMLDivElement, Props>(
                         Clear all
                       </button>
                     </div>
-                    <div className="max-h-[220px] overflow-y-auto">
+                    <div className="max-h-[220px] overflow-y-auto pr-1">
                     {[...selectedDates]
                       .sort()
                       .map((date) => (
