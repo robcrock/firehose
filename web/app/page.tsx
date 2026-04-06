@@ -33,13 +33,17 @@ export default async function Home() {
       <main className="mx-auto max-w-7xl px-6 py-8">
         <header className="mb-6">
           <h1 className="text-display font-semibold tracking-tight text-foreground">
-            Product Feedback Dashboard
+            Firehose
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-            FreeStyle Libre app reviews from the last {data.windowDays} days
-            <span className="mx-2 text-border">|</span>
-            <span className="text-muted-foreground/80">
-              Updated {data.generatedAt.slice(0, 10)}
+          <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed flex items-center gap-1.5">
+            What users are saying about Libre — last {data.windowDays} days
+            <span className="mx-1 text-border">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-muted-foreground/80">live</span>
             </span>
           </p>
         </header>

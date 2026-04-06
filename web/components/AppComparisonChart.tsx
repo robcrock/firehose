@@ -34,7 +34,7 @@ export function AppComparisonChart({ data }: Props) {
     <div className="bg-white rounded-xl border border-gray-200 p-6 max-h-[380px] flex flex-col overflow-hidden">
       <div className="flex items-center gap-1.5 mb-4 relative">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
-          App Comparison
+          App by app
         </h3>
         <div
           className="relative"
@@ -68,7 +68,13 @@ export function AppComparisonChart({ data }: Props) {
               <span className="text-xs text-muted-foreground">
                 {app.avgRating.toFixed(1)}
               </span>
-              <span className="text-sm font-semibold text-foreground min-w-[52px] text-right">
+              <span className={`text-sm font-semibold min-w-[52px] text-right ${
+                app.severityLabel === "Critical" 
+                  ? "text-amber-600" 
+                  : app.severityLabel === "Warning"
+                  ? "text-amber-500"
+                  : "text-gray-400"
+              }`}>
                 {app.severityLabel}
               </span>
             </div>

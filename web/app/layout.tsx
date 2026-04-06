@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Product Feedback Dashboard — FreeStyle Libre Reviews",
-  description: "AI-powered insights from App Store & Google Play reviews for FreeStyle Libre apps. Sentiment trends, category breakdowns, and pain point analysis.",
+  title: "Firehose — What users are saying about Libre",
+  description: "Live feed of what users are saying about FreeStyle Libre apps. See the mood, spot the pain, act on what matters.",
 };
 
 export default function RootLayout({
