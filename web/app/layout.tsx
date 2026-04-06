@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { Analytics } from "@vercel/analytics/next"
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -28,6 +30,7 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <Analytics />
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
