@@ -43,7 +43,7 @@ function CategoryBadge({ category }: { category: ReviewCategory }) {
   const config = CATEGORY_CONFIG[category];
   return (
     <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${config.bgColor}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${config.bgColor}`}
     >
       {config.label}
     </span>
@@ -106,7 +106,7 @@ function ReviewCard({ review, isTriaged, onToggleTriage }: ReviewCardProps) {
     : review.body;
 
   return (
-    <li className={`py-4 first:pt-0 last:pb-0 ${isTriaged ? "opacity-50" : ""}`}>
+    <li className={`py-4 first:pt-0 last:pb-0 transition-opacity duration-300 ${isTriaged ? "opacity-40" : ""}`}>
       <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
         <Stars rating={review.rating} />
         <span className="font-medium text-gray-700">{review.appDisplayName}</span>
@@ -124,9 +124,9 @@ function ReviewCard({ review, isTriaged, onToggleTriage }: ReviewCardProps) {
         {needsTruncation && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="ml-1 text-blue-600 hover:text-blue-800 font-medium"
+            className="ml-1 text-gray-500 hover:text-gray-700 font-medium"
           >
-            {expanded ? "Show less" : "Read more"}
+            {expanded ? "less" : "full review →"}
           </button>
         )}
       </p>
@@ -136,14 +136,14 @@ function ReviewCard({ review, isTriaged, onToggleTriage }: ReviewCardProps) {
         )}
         <button
           onClick={onToggleTriage}
-          className={`ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+          className={`ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
             isTriaged
               ? "bg-green-100 text-green-700 hover:bg-green-200"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
-          <Check className={`w-3.5 h-3.5 ${isTriaged ? "text-green-600" : "text-gray-400"}`} />
-          {isTriaged ? "Triaged" : "Mark as triaged"}
+          <Check className={`w-3.5 h-3.5 transition-colors ${isTriaged ? "text-green-600" : "text-gray-400"}`} />
+          {isTriaged ? "Noted" : "Done with this →"}
         </button>
       </div>
     </li>
@@ -226,7 +226,7 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                All ({categoryCounts.all})
+                Everything ({categoryCounts.all})
               </button>
               {ALL_CATEGORIES.map((cat) => (
                 <button

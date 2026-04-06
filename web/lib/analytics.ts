@@ -345,9 +345,9 @@ export function getAppPainPoints(
  * Category display configuration
  */
 export const CATEGORY_CONFIG: Record<ReviewCategory, { label: string; color: string; bgColor: string }> = {
-  bug: { label: "Bug", color: "#dc2626", bgColor: "bg-red-100 text-red-800" },
-  feature_request: { label: "Feature Request", color: "#2563eb", bgColor: "bg-blue-100 text-blue-800" },
-  clinical_concern: { label: "Clinical Concern", color: "#7c3aed", bgColor: "bg-purple-100 text-purple-800" },
-  positive: { label: "Positive", color: "#16a34a", bgColor: "bg-green-100 text-green-800" },
-  other: { label: "Other", color: "#6b7280", bgColor: "bg-gray-100 text-gray-800" },
+  bug: { label: "Broken", color: "#78716c", bgColor: "bg-stone-100 text-stone-700" },
+  feature_request: { label: "Wishlist", color: "#64748b", bgColor: "bg-slate-100 text-slate-700" },
+  clinical_concern: { label: "Needs attention", color: "#a16207", bgColor: "bg-amber-50 text-amber-700" },
+  positive: { label: "Working", color: "#4b5563", bgColor: "bg-gray-100 text-gray-600" },
+  other: { label: "Untagged", color: "#6b7280", bgColor: "bg-neutral-100 text-neutral-600" },
 };

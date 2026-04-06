@@ -124,10 +124,13 @@ export function VolumeSpikesChart({
           <div className="relative" ref={spikeMenuRef}>
             <button
               onClick={() => setSpikeMenuOpen(!spikeMenuOpen)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-medium hover:bg-amber-200 transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              {spikeCount} spike{spikeCount > 1 ? "s" : ""} detected
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+              </span>
+              {spikeCount} moment{spikeCount > 1 ? "s" : ""} worth investigating
               <ChevronDown
                 className={`w-3 h-3 transition-transform ${spikeMenuOpen ? "rotate-180" : ""}`}
               />
@@ -136,7 +139,7 @@ export function VolumeSpikesChart({
               <div className="absolute top-full right-0 mt-1 z-20 w-max bg-white border border-gray-200 rounded-lg shadow-lg py-1">
                 <div className="px-3 py-2 border-b border-gray-100">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Filter by spike
+                    Jump to a spike
                   </span>
                 </div>
                 {spikes.map((spike) => {

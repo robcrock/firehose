@@ -8,10 +8,11 @@ type Props = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  bug: "Bugs",
-  feature_request: "Features",
-  clinical_concern: "Clinical",
-  other: "Other",
+  bug: "Broken",
+  feature_request: "Wishlist",
+  clinical_concern: "Needs attention",
+  positive: "Working",
+  other: "Untagged",
 };
 
 // Monochrome grayscale ramp — darkest for largest actionable category, lighter for smaller
@@ -25,47 +26,48 @@ const GRAY_PALETTE = [
 export function CategoryBreakdownChart({ data }: Props) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // Merge "positive" into "other"
-  const merged = data.reduce<Record<string, number>>((acc, d) => {
-    const key = d.category === "positive" ? "other" : d.category;
-    acc[key] = (acc[key] ?? 0) + d.count;
+  // Keep all categories separate (no merge)
+  const counts = data.reduce<Record<string, number>>((acc, d) => {
+    acc[d.category] = (acc[d.category] ?? 0) + d.count;
     return acc;
   }, {});
 
-  const total = Object.values(merged).reduce((sum, c) => sum + c, 0);
+  const total = Object.values(counts).reduce((sum, c) => sum + c, 0);
 
-  // Separate "other" from actionable categories, sort actionable by count desc
-  const actionable = Object.entries(merged)
-    .filter(([cat]) => cat !== "other")
-    .sort(([, a], [, b]) => b - a);
+  // Sort all categories by count desc, but pin "positive" and "other" at the end
+  const priority: Record<string, number> = {
+    bug: 0,
+    feature_request: 1,
+    clinical_concern: 2,
+    positive: 3,
+    other: 4,
+  };
 
-  const otherCount = merged["other"] ?? 0;
+  const sortedCategories = Object.entries(counts)
+    .sort(([catA, countA], [catB, countB]) => {
+      // Primary: actionable categories first (bug, feature_request, clinical_concern)
+      // Secondary: by count desc within actionable, then positive, then other
+      const prioA = priority[catA] ?? 99;
+      const prioB = priority[catB] ?? 99;
+      if (prioA !== prioB) return prioA - prioB;
+      return countB - countA;
+    });
 
-  // Build chart data: actionable categories sorted desc, then "other" pinned at the end
-  const chartData = [
-    ...actionable.map(([cat, count], i) => ({
-      category: cat,
-      count,
-      label: CATEGORY_LABELS[cat] || cat,
-      fill: GRAY_PALETTE[i] ?? GRAY_PALETTE[GRAY_PALETTE.length - 1],
-      percentage: total > 0 ? Number(((count / total) * 100).toFixed(1)) : 0,
-      widthPct: total > 0 ? (count / total) * 100 : 0,
-    })),
-    {
-      category: "other",
-      count: otherCount,
-      label: "Other",
-      fill: GRAY_PALETTE[GRAY_PALETTE.length - 1],
-      percentage: total > 0 ? Number(((otherCount / total) * 100).toFixed(1)) : 0,
-      widthPct: total > 0 ? (otherCount / total) * 100 : 0,
-    },
-  ];
+  // Build chart data
+  const chartData = sortedCategories.map(([cat, count], i) => ({
+    category: cat,
+    count,
+    label: CATEGORY_LABELS[cat] || cat,
+    fill: GRAY_PALETTE[Math.min(i, GRAY_PALETTE.length - 1)],
+    percentage: total > 0 ? Number(((count / total) * 100).toFixed(1)) : 0,
+    widthPct: total > 0 ? (count / total) * 100 : 0,
+  }));
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 max-h-[380px] flex flex-col overflow-hidden">
       <div className="mb-4">
         <h3 className="text-title font-semibold tracking-tight text-foreground">
-          Category Distribution
+          Where the pain is
         </h3>
       </div>
 

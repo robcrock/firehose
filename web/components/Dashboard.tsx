@@ -200,8 +200,8 @@ function DashboardContent({
         <div className="md:col-span-3 min-h-0 h-full" ref={volumeChartRef}>
           <TabbedChartCard
             tabs={[
-              { id: "sentiment", label: "Sentiment Trend" },
-              { id: "volume", label: "Review Volume" },
+              { id: "sentiment", label: "Mood over time" },
+              { id: "volume", label: "How loud it's been" },
             ]}
             defaultTab="sentiment"
             footer={
