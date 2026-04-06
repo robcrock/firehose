@@ -49,8 +49,8 @@ export function TabbedChartCard({ tabs, defaultTab, children }: Props) {
         ))}
       </div>
 
-      {/* Active tab content — locked to 16:9 */}
-      <div className="flex flex-col justify-end aspect-video">
+      {/* Active tab content — locked to 2:1 for a shorter, wider chart */}
+      <div className="flex flex-col justify-end aspect-[2/1]">
         {children(activeTab)}
       </div>
     </div>

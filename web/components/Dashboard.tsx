@@ -168,13 +168,13 @@ function DashboardContent({
 
   return (
     <div className="space-y-6">
-      {/* Zone 1: Global Filter Bar */}
+      {/* Filter bar portals into the header slot */}
       <GlobalFilterBar
         apps={initialAppComparison}
         totalFilteredCount={totalReviews}
       />
 
-      {/* Zone 2: KPI Strip */}
+      {/* Zone 1: KPI Strip */}
       <KPIStrip
         totalReviews={totalReviews}
         avgRating={avgRating}
@@ -219,11 +219,13 @@ function DashboardContent({
       </div>
 
       {/* Zone 4: Reviews + Top Pain Points */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-h-[100vh]">
+        <div className="md:col-span-3 min-h-0">
           <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
         </div>
-        <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
+        <div className="min-h-0">
+          <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
+        </div>
       </div>
     </div>
   );

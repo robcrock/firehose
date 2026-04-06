@@ -206,8 +206,6 @@ export function GlobalFilterBar({ apps }: Props) {
           ))}
         </MultiSelectPopover>
 
-        <div className="flex-1" />
-
         {hasActiveFilters && (
           <Button
             variant="ghost"

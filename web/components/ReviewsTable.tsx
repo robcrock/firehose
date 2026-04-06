@@ -212,23 +212,9 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
     }, [globalFiltered]);
 
     return (
-      <div ref={ref} className="bg-white rounded-xl border border-gray-200 p-6">
+      <div ref={ref} className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
         {/* Header */}
         <div className="flex flex-col gap-4 mb-4">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-title font-semibold tracking-tight text-foreground">
-              <span className="text-kpi font-semibold tabular-nums">
-                {filtered.length.toLocaleString()}
-              </span>{" "}
-              <span className="font-semibold">reviews</span>
-            </h2>
-            {filterSummary && (
-              <p className="text-sm text-muted-foreground leading-snug">
-                {filterSummary}
-              </p>
-            )}
-          </div>
-
           {/* Category Tab Strip */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex flex-wrap gap-1.5">
@@ -277,7 +263,7 @@ export const ReviewsTable = forwardRef<HTMLDivElement, Props>(
             No reviews match the current filters.
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto pr-3">
+          <ul className="divide-y divide-gray-100 flex-1 overflow-y-auto pr-3">
             {filtered.map((r) => (
               <ReviewCard
                 key={r.id}
