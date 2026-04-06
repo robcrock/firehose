@@ -3,6 +3,7 @@
 import { useRef, useMemo, useCallback, useState } from "react";
 import { GlobalFilterBar } from "./GlobalFilterBar";
 import { KPIStrip } from "./KPIStrip";
+import { TabbedChartCard } from "./TabbedChartCard";
 import { SentimentTrendChart } from "./SentimentTrendChart";
 import { CategoryBreakdownChart } from "./CategoryBreakdownChart";
 import { VolumeSpikesChart } from "./VolumeSpikesChart";
@@ -187,10 +188,29 @@ function DashboardContent({
         currentNegativeCount={currentHalfKPIs?.negativeCount ?? null}
       />
 
-      {/* Zone 3: Overview - Trends + Sidebar */}
+      {/* Zone 3: Charts + Sidebar */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-3">
-          <SentimentTrendChart data={weeklySentiment} />
+        <div className="md:col-span-3" ref={volumeChartRef}>
+          <TabbedChartCard
+            tabs={[
+              { id: "sentiment", label: "Sentiment Trend" },
+              { id: "volume", label: "Review Volume" },
+            ]}
+            defaultTab="sentiment"
+          >
+            {(activeTab) =>
+              activeTab === "sentiment" ? (
+                <SentimentTrendChart data={weeklySentiment} />
+              ) : (
+                <VolumeSpikesChart
+                  data={dailyCountsWithSpikes}
+                  selectedDates={selectedDates}
+                  onDateToggle={handleDateSelect}
+                  onClearDates={clearSelectedDates}
+                />
+              )
+            }
+          </TabbedChartCard>
         </div>
         <div className="flex flex-col gap-6">
           <CategoryBreakdownChart data={categoryBreakdown} />
@@ -200,15 +220,6 @@ function DashboardContent({
 
       {/* Zone 4: Top Pain Points */}
       <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
-
-      {/* Zone 5: Volume & Anomaly Detection */}
-      <VolumeSpikesChart
-        ref={volumeChartRef}
-        data={dailyCountsWithSpikes}
-        selectedDates={selectedDates}
-        onDateToggle={handleDateSelect}
-        onClearDates={clearSelectedDates}
-      />
 
       {/* Zone 6: Review List */}
       <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
