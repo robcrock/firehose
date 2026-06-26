@@ -1,151 +1,252 @@
 "use client";
 
-import { useMemo } from "react";
-import { REVIEWS, PRODUCT_META, GENERATED_AT } from "@/lib/mock-data";
-import {
-  autoInsights,
-  competitiveMentions,
-  computeKpis,
-  filterReviews,
-  negativeDrivers,
-  priorPeriodReviews,
-  segmentBreakdown,
-  sentimentSplit,
-  starDistribution,
-  themeBreakdown,
-  topPhrases,
-  trendOverTime,
-} from "@/lib/analytics";
+import { useRef, useMemo, useCallback, useState } from "react";
+import { GlobalFilterBar } from "./GlobalFilterBar";
+import { KPIStrip } from "./KPIStrip";
+import { TabbedChartCard } from "./TabbedChartCard";
+import { SentimentTrendChart } from "./SentimentTrendChart";
+import { CategoryBreakdownChart } from "./CategoryBreakdownChart";
+import { VolumeSpikesChart } from "./VolumeSpikesChart";
+import { TopPhrasesPanel } from "./TopPhrasesPanel";
+import { AppComparisonChart } from "./AppComparisonChart";
+import { ReviewsTable } from "./ReviewsTable";
 import { FilterProvider, useFilter } from "@/lib/filter-context";
-import { formatDate } from "@/lib/ui";
-import { FilterBar } from "@/components/FilterBar";
-import { KpiHeader } from "@/components/KpiHeader";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { TrendPanel } from "@/components/panels/TrendPanel";
-import { SentimentDonut } from "@/components/panels/SentimentDonut";
-import { StarDistribution } from "@/components/panels/StarDistribution";
-import { ThemeBreakdown } from "@/components/panels/ThemeBreakdown";
-import { SegmentsPanel } from "@/components/panels/SegmentsPanel";
-import { NegativeDrivers } from "@/components/panels/NegativeDrivers";
-import { CompetitivePanel } from "@/components/panels/CompetitivePanel";
-import { TopPhrases } from "@/components/panels/TopPhrases";
-import { AutoInsights } from "@/components/panels/AutoInsights";
-import { Activity } from "lucide-react";
+import {
+  filterReviews,
+  getWeeklySentiment,
+  getDailyCountsWithSpikes,
+  getAppComparison,
+  getCategoryBreakdown,
+  getTopPhrases,
+} from "@/lib/analytics";
+import type {
+  ClassifiedReview,
+  WeeklySentiment,
+  DailyCountWithSpike,
+  AppStats,
+  CategoryCount,
+  PhraseCount,
+} from "@/lib/types";
 
-function DashboardInner() {
+type DashboardContentProps = {
+  reviews: ClassifiedReview[];
+  weeklySentiment: WeeklySentiment[];
+  dailyCountsWithSpikes: DailyCountWithSpike[];
+  appComparison: AppStats[];
+  categoryBreakdown: CategoryCount[];
+  topPhrases: PhraseCount[];
+  windowDays: number;
+  generatedAt: string;
+};
+
+function DashboardContent({
+  reviews,
+  weeklySentiment: initialWeeklySentiment,
+  dailyCountsWithSpikes: initialDailyCountsWithSpikes,
+  appComparison: initialAppComparison,
+  categoryBreakdown: initialCategoryBreakdown,
+  topPhrases: initialTopPhrases,
+  windowDays,
+  generatedAt,
+}: DashboardContentProps) {
   const { filter } = useFilter();
+  const volumeChartRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
 
-  const view = useMemo(() => {
-    const current = filterReviews(REVIEWS, filter);
-    const prior = priorPeriodReviews(REVIEWS, filter);
-    const kpis = computeKpis(current, prior);
+  const handleDateSelect = useCallback(
+    (date: string) => {
+      setSelectedDates((prev) => {
+        const next = new Set(prev);
+        if (next.has(date)) {
+          next.delete(date);
+        } else {
+          next.add(date);
+        }
+        return next;
+      });
+    },
+    []
+  );
+
+  const clearSelectedDates = useCallback(() => {
+    setSelectedDates(new Set());
+  }, []);
+
+  // Filter reviews based on FilterState
+  const filteredReviews = useMemo(() => {
+    return filterReviews(reviews, filter);
+  }, [reviews, filter]);
+
+  // Recompute analytics for filtered reviews
+  const weeklySentiment = useMemo(() => {
+    return getWeeklySentiment(filteredReviews);
+  }, [filteredReviews]);
+
+  const effectiveWindowDays = useMemo(() => {
+    if (typeof filter.timeRange === "string") {
+      return filter.timeRange === "7d" ? 7 : filter.timeRange === "30d" ? 30 : windowDays;
+    }
+    return windowDays;
+  }, [filter.timeRange, windowDays]);
+
+  const dailyCountsWithSpikes = useMemo(() => {
+    return getDailyCountsWithSpikes(filteredReviews, effectiveWindowDays, generatedAt);
+  }, [filteredReviews, effectiveWindowDays, generatedAt]);
+
+  const appComparison = useMemo(() => {
+    return getAppComparison(filteredReviews);
+  }, [filteredReviews]);
+
+  const categoryBreakdown = useMemo(() => {
+    return getCategoryBreakdown(filteredReviews);
+  }, [filteredReviews]);
+
+  const topPhrases = useMemo(() => {
+    return getTopPhrases(filteredReviews, { maxRating: 2, limit: 15 });
+  }, [filteredReviews]);
+
+  // KPI calculations
+  const totalReviews = filteredReviews.length;
+  const avgRating =
+    totalReviews > 0
+      ? filteredReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+      : 0;
+  const negativeCount = filteredReviews.filter((r) => r.rating <= 2).length;
+  const spikeCount = dailyCountsWithSpikes.filter((d) => d.isSpike).length;
+
+  // Prior period KPIs: split filtered reviews into first half (prior) and
+  // second half (current) by date, then compare. This always works regardless
+  // of how much historical data is available.
+  const priorPeriodKPIs = useMemo(() => {
+    if (filteredReviews.length < 4) return null;
+
+    const sorted = [...filteredReviews].sort(
+      (a, b) => a.date.localeCompare(b.date)
+    );
+    const mid = Math.floor(sorted.length / 2);
+    const priorHalf = sorted.slice(0, mid);
+
+    const priorTotal = priorHalf.length;
+    const priorAvg =
+      priorTotal > 0
+        ? priorHalf.reduce((sum, r) => sum + r.rating, 0) / priorTotal
+        : 0;
+    const priorNegative = priorHalf.filter((r) => r.rating <= 2).length;
+
     return {
-      current,
-      kpis,
-      trend: trendOverTime(current),
-      split: sentimentSplit(current),
-      stars: starDistribution(current),
-      themes: themeBreakdown(current),
-      segments: segmentBreakdown(current),
-      negatives: negativeDrivers(current),
-      competitive: competitiveMentions(current),
-      phrases: topPhrases(current),
-      insights: autoInsights(current, prior, kpis),
+      totalReviews: priorTotal,
+      avgRating: priorAvg,
+      negativeCount: priorNegative,
     };
-  }, [filter]);
+  }, [filteredReviews]);
+
+  // Current half KPIs (second half of the sorted filtered reviews)
+  const currentHalfKPIs = useMemo(() => {
+    if (filteredReviews.length < 4) return null;
+
+    const sorted = [...filteredReviews].sort(
+      (a, b) => a.date.localeCompare(b.date)
+    );
+    const mid = Math.floor(sorted.length / 2);
+    const currentHalf = sorted.slice(mid);
+
+    const currentTotal = currentHalf.length;
+    const currentAvg =
+      currentTotal > 0
+        ? currentHalf.reduce((sum, r) => sum + r.rating, 0) / currentTotal
+        : 0;
+    const currentNegative = currentHalf.filter((r) => r.rating <= 2).length;
+
+    return {
+      totalReviews: currentTotal,
+      avgRating: currentAvg,
+      negativeCount: currentNegative,
+    };
+  }, [filteredReviews]);
+
+  const scrollToSpikes = useCallback(() => {
+    volumeChartRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
+  const scrollToReviews = useCallback(() => {
+    reviewsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   return (
-    <>
-      <FilterBar />
-      <main className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6">
-        {view.current.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card/50 py-20 text-center">
-            <Activity className="size-8 text-muted-foreground/50" />
-            <p className="text-base font-medium text-foreground">No reviews match these filters</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Try widening the time range, clearing rating filters, or resetting your selection.
-            </p>
-          </div>
-        ) : (
-          <>
-            <KpiHeader kpis={view.kpis} />
+    <div className="space-y-6">
+      {/* Filter bar portals into the header slot */}
+      <GlobalFilterBar
+        apps={initialAppComparison}
+        totalFilteredCount={totalReviews}
+      />
 
-            <TrendPanel data={view.trend} />
+      {/* Zone 1: KPI Strip */}
+      <KPIStrip
+        totalReviews={totalReviews}
+        avgRating={avgRating}
+        negativeCount={negativeCount}
+        spikeCount={spikeCount}
+        priorTotalReviews={priorPeriodKPIs?.totalReviews ?? null}
+        priorAvgRating={priorPeriodKPIs?.avgRating ?? null}
+        priorNegativeCount={priorPeriodKPIs?.negativeCount ?? null}
+        currentTotalReviews={currentHalfKPIs?.totalReviews ?? null}
+        currentAvgRating={currentHalfKPIs?.avgRating ?? null}
+        currentNegativeCount={currentHalfKPIs?.negativeCount ?? null}
+      />
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <SentimentDonut split={view.split} />
-              <StarDistribution data={view.stars} />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-              <div className="lg:col-span-3">
-                <ThemeBreakdown data={view.themes} />
-              </div>
-              <div className="lg:col-span-2">
-                <AutoInsights insights={view.insights} />
-              </div>
-            </div>
-
-            <SegmentsPanel data={view.segments} />
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <NegativeDrivers data={view.negatives} />
-              <CompetitivePanel data={view.competitive} />
-            </div>
-
-            <TopPhrases data={view.phrases} />
-          </>
-        )}
-      </main>
-    </>
+      {/* Zone 3: Charts + Reviews + Sidebar */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-2rem)]">
+        <div className="md:col-span-3 min-h-0 h-full" ref={volumeChartRef}>
+          <TabbedChartCard
+            tabs={[
+              { id: "sentiment", label: "Mood over time" },
+              { id: "volume", label: "How loud it's been" },
+            ]}
+            defaultTab="sentiment"
+            footer={
+              <ReviewsTable ref={reviewsRef} reviews={reviews} selectedDates={selectedDates} />
+            }
+          >
+            {(activeTab) =>
+              activeTab === "sentiment" ? (
+                <SentimentTrendChart data={weeklySentiment} />
+              ) : (
+                <VolumeSpikesChart
+                  data={dailyCountsWithSpikes}
+                  selectedDates={selectedDates}
+                  onDateToggle={handleDateSelect}
+                  onClearDates={clearSelectedDates}
+                />
+              )
+            }
+          </TabbedChartCard>
+        </div>
+        <div className="flex flex-col gap-6">
+          <CategoryBreakdownChart data={categoryBreakdown} />
+          <AppComparisonChart data={appComparison} allReviews={filteredReviews} />
+          <TopPhrasesPanel data={topPhrases} onScrollToReviews={scrollToReviews} />
+        </div>
+      </div>
+    </div>
   );
 }
 
-export function Dashboard() {
+type Props = {
+  reviews: ClassifiedReview[];
+  weeklySentiment: WeeklySentiment[];
+  dailyCountsWithSpikes: DailyCountWithSpike[];
+  appComparison: AppStats[];
+  categoryBreakdown: CategoryCount[];
+  topPhrases: PhraseCount[];
+  windowDays: number;
+  generatedAt: string;
+};
+
+export function Dashboard(props: Props) {
   return (
     <FilterProvider>
-      <div className="min-h-screen bg-background">
-        <header className="border-b border-border bg-card/40">
-          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex size-7 items-center justify-center rounded-lg bg-primary/12 text-primary">
-                  <Activity className="size-4" />
-                </span>
-                <span className="text-overline font-semibold uppercase tracking-wider text-primary">
-                  Review Insights
-                </span>
-              </div>
-              <h1 className="max-w-2xl text-display font-semibold leading-tight tracking-tight text-foreground text-balance">
-                {PRODUCT_META.title}
-              </h1>
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                <span>{PRODUCT_META.brand}</span>
-                <span className="text-border">·</span>
-                <span>{PRODUCT_META.category}</span>
-                <span className="text-border">·</span>
-                <span>{PRODUCT_META.totalReviews.toLocaleString()} lifetime reviews</span>
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <span className="hidden text-right text-xs leading-tight text-muted-foreground sm:block">
-                Analysis as of
-                <br />
-                <span className="font-medium text-foreground">{formatDate(GENERATED_AT)}</span>
-              </span>
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
-        <DashboardInner />
-        <footer className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Demonstration dashboard built on a synthetic, deterministic review dataset
-            ({REVIEWS.length} reviews) for the purpose of showcasing analytics UX. Sentiment
-            and theme classifications are simulated.
-          </p>
-        </footer>
-      </div>
+      <DashboardContent {...props} />
     </FilterProvider>
   );
 }
