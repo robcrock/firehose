@@ -16,8 +16,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Firehose — What users are saying about Libre",
-  description: "Live feed of what users are saying about FreeStyle Libre apps. See the mood, spot the pain, act on what matters.",
+  title: "Review Insights — Customer Sentiment Dashboard",
+  description:
+    "Analyze customer review sentiment, themes, segments, and competitive mentions for a consumer health product. Filter by time, rating, and theme to surface what matters.",
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7fbfb" },
+    { media: "(prefers-color-scheme: dark)", color: "#16242b" },
+  ],
 };
 
 export default function RootLayout({

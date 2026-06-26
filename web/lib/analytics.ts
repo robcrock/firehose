@@ -1,353 +1,436 @@
-import { format, parseISO, startOfWeek, addDays } from "date-fns";
-import type {
-  ClassifiedReview,
-  Review,
-  WeeklySentiment,
-  DailyCountWithSpike,
-  AppStats,
-  PhraseCount,
-  CategoryCount,
-  ReviewCategory,
-  FilterState,
+import {
+  type Competitor,
+  COMPETITORS,
+  type FilterState,
+  type Review,
+  type Sentiment,
+  type Theme,
+  THEMES,
+  type UseCase,
+  USE_CASES,
+  USE_CASE_LABELS,
+  TIME_RANGE_DAYS,
 } from "./types";
+import { GENERATED_AT } from "./mock-data";
 
-/**
- * Aggregate reviews into weekly sentiment buckets showing average rating trend.
- */
-export function getWeeklySentiment(reviews: Review[]): WeeklySentiment[] {
-  const weekMap = new Map<string, { sum: number; count: number; weekStart: string }>();
+const DAY = 24 * 60 * 60 * 1000;
+const ANCHOR = new Date(GENERATED_AT).getTime();
 
-  for (const review of reviews) {
-    const date = parseISO(review.date);
-    const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Monday
-    const weekKey = format(weekStart, "yyyy-MM-dd");
-    const weekLabel = format(weekStart, "MMM d");
+// ----- Filtering -----
 
-    const existing = weekMap.get(weekKey);
-    if (existing) {
-      existing.sum += review.rating;
-      existing.count += 1;
-    } else {
-      weekMap.set(weekKey, { sum: review.rating, count: 1, weekStart: weekKey });
+function matchesNonTimeFilters(r: Review, f: FilterState): boolean {
+  if (f.ratings.length > 0 && !f.ratings.includes(r.rating)) return false;
+  if (f.verifiedOnly && !r.verifiedPurchase) return false;
+  if (f.themes.length > 0 && !r.themes.some((t) => f.themes.includes(t))) return false;
+  if (f.segment && r.useCase !== f.segment) return false;
+  if (f.keyword.trim()) {
+    const k = f.keyword.trim().toLowerCase();
+    if (!r.title.toLowerCase().includes(k) && !r.body.toLowerCase().includes(k)) {
+      return false;
     }
   }
-
-  return Array.from(weekMap.entries())
-    .map(([key, { sum, count, weekStart }]) => ({
-      week: format(parseISO(weekStart), "MMM d"),
-      weekStart,
-      avgRating: Math.round((sum / count) * 100) / 100,
-      count,
-    }))
-    .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+  return true;
 }
 
-/**
- * Calculate daily counts with spike detection.
- * A spike is when the count is > 2x the 7-day rolling average.
- */
-export function getDailyCountsWithSpikes(
-  reviews: Review[],
-  windowDays: number,
-  generatedAt: string
-): DailyCountWithSpike[] {
-  const end = parseISO(generatedAt);
-  const endDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
-  const startDay = addDays(endDay, -(windowDays - 1));
+export function getWindow(f: FilterState): { start: number; end: number } {
+  const days = TIME_RANGE_DAYS[f.timeRange];
+  const end = ANCHOR;
+  const start = days === null ? 0 : end - days * DAY;
+  return { start, end };
+}
 
-  // Build initial counts
-  const counts = new Map<string, number>();
-  for (let d = startDay; d <= endDay; d = addDays(d, 1)) {
-    counts.set(format(d, "yyyy-MM-dd"), 0);
-  }
+export function filterReviews(reviews: Review[], f: FilterState): Review[] {
+  const { start, end } = getWindow(f);
+  return reviews.filter((r) => {
+    const t = +new Date(r.date);
+    if (t < start || t > end) return false;
+    return matchesNonTimeFilters(r, f);
+  });
+}
 
+// Prior equivalent period (same length immediately before the current window).
+export function priorPeriodReviews(reviews: Review[], f: FilterState): Review[] | null {
+  const days = TIME_RANGE_DAYS[f.timeRange];
+  if (days === null) return null; // "All" has no prior period
+  const currentStart = ANCHOR - days * DAY;
+  const priorStart = currentStart - days * DAY;
+  return reviews.filter((r) => {
+    const t = +new Date(r.date);
+    if (t < priorStart || t >= currentStart) return false;
+    return matchesNonTimeFilters(r, f);
+  });
+}
+
+// ----- Aggregations -----
+
+export function avgRating(reviews: Review[]): number {
+  if (reviews.length === 0) return 0;
+  return reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+}
+
+export function netSentiment(reviews: Review[]): number {
+  if (reviews.length === 0) return 0;
+  const pos = reviews.filter((r) => r.sentiment === "positive").length;
+  const neg = reviews.filter((r) => r.sentiment === "negative").length;
+  return ((pos - neg) / reviews.length) * 100;
+}
+
+export function verifiedShare(reviews: Review[]): number {
+  if (reviews.length === 0) return 0;
+  return (reviews.filter((r) => r.verifiedPurchase).length / reviews.length) * 100;
+}
+
+export function sentimentSplit(reviews: Review[]): Record<Sentiment, number> {
+  return {
+    positive: reviews.filter((r) => r.sentiment === "positive").length,
+    neutral: reviews.filter((r) => r.sentiment === "neutral").length,
+    negative: reviews.filter((r) => r.sentiment === "negative").length,
+  };
+}
+
+export function starDistribution(reviews: Review[]): { star: number; count: number }[] {
+  return [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    count: reviews.filter((r) => r.rating === star).length,
+  }));
+}
+
+export type KpiDelta = number | null;
+
+export type Kpis = {
+  avgRating: number;
+  avgRatingDelta: KpiDelta;
+  count: number;
+  countDelta: KpiDelta;
+  netSentiment: number;
+  netSentimentDelta: KpiDelta;
+  verifiedShare: number;
+  topTheme: { theme: Theme; count: number } | null;
+};
+
+export function computeKpis(current: Review[], prior: Review[] | null): Kpis {
+  const themeCounts = themeBreakdown(current);
+  const topTheme =
+    themeCounts.length > 0 ? { theme: themeCounts[0].theme, count: themeCounts[0].count } : null;
+
+  const curAvg = avgRating(current);
+  const curNet = netSentiment(current);
+
+  return {
+    avgRating: curAvg,
+    avgRatingDelta: prior && prior.length > 0 ? curAvg - avgRating(prior) : null,
+    count: current.length,
+    countDelta: prior ? current.length - prior.length : null,
+    netSentiment: curNet,
+    netSentimentDelta: prior && prior.length > 0 ? curNet - netSentiment(prior) : null,
+    verifiedShare: verifiedShare(current),
+    topTheme,
+  };
+}
+
+// ----- Time-series trend -----
+
+function weekStartOf(date: Date): Date {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = (d.getUTCDay() + 6) % 7; // Monday = 0
+  d.setUTCDate(d.getUTCDate() - day);
+  return d;
+}
+
+export type TrendPoint = {
+  weekStart: string;
+  label: string;
+  avgRating: number;
+  netSentiment: number;
+  count: number;
+};
+
+export function trendOverTime(reviews: Review[]): TrendPoint[] {
+  const buckets = new Map<string, Review[]>();
   for (const r of reviews) {
-    const d = parseISO(r.date);
-    const day = format(
-      new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())),
-      "yyyy-MM-dd"
-    );
-    if (counts.has(day)) {
-      counts.set(day, (counts.get(day) ?? 0) + 1);
-    }
+    const ws = weekStartOf(new Date(r.date)).toISOString().slice(0, 10);
+    if (!buckets.has(ws)) buckets.set(ws, []);
+    buckets.get(ws)!.push(r);
   }
-
-  const dailyData = Array.from(counts, ([date, count]) => ({ date, count }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  // Calculate rolling averages and detect spikes
-  return dailyData.map((day, index) => {
-    // Calculate 7-day rolling average (previous 7 days, not including current)
-    const lookbackStart = Math.max(0, index - 7);
-    const lookbackEnd = index;
-    const lookbackDays = dailyData.slice(lookbackStart, lookbackEnd);
-    
-    const rollingAvg = lookbackDays.length > 0
-      ? lookbackDays.reduce((sum, d) => sum + d.count, 0) / lookbackDays.length
-      : day.count;
-
-    const isSpike = day.count > rollingAvg * 2 && day.count > 5; // Require minimum 5 reviews to be a spike
-
-    return {
-      ...day,
-      isSpike,
-      rollingAvg: Math.round(rollingAvg * 10) / 10,
-    };
-  });
+  return [...buckets.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([weekStart, group]) => {
+      const d = new Date(weekStart);
+      return {
+        weekStart,
+        label: d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        }),
+        avgRating: Number(avgRating(group).toFixed(2)),
+        netSentiment: Number(netSentiment(group).toFixed(1)),
+        count: group.length,
+      };
+    });
 }
 
-/**
- * Get comparison statistics for each app.
- */
-export function getAppComparison(reviews: ClassifiedReview[]): AppStats[] {
-  const appMap = new Map<string, {
-    displayName: string;
-    sum: number;
-    count: number;
-    categories: Record<ReviewCategory, number>;
-  }>();
+// ----- Theme breakdown (centerpiece) -----
 
-  const defaultCategories = (): Record<ReviewCategory, number> => ({
-    bug: 0,
-    feature_request: 0,
-    clinical_concern: 0,
-    positive: 0,
-    other: 0,
-  });
+export type ThemeStat = {
+  theme: Theme;
+  count: number;
+  avgSentiment: number; // -1..1
+  positiveShare: number; // 0..100
+  trend: number[]; // mention count per bucket across the window
+};
 
-  for (const review of reviews) {
-    const existing = appMap.get(review.app);
-    if (existing) {
-      existing.sum += review.rating;
-      existing.count += 1;
-      existing.categories[review.category] += 1;
-    } else {
-      const categories = defaultCategories();
-      categories[review.category] = 1;
-      appMap.set(review.app, {
-        displayName: review.appDisplayName,
-        sum: review.rating,
-        count: 1,
-        categories,
-      });
+function avgSentimentScore(reviews: Review[]): number {
+  if (reviews.length === 0) return 0;
+  return reviews.reduce((s, r) => s + r.sentimentScore, 0) / reviews.length;
+}
+
+function bucketCounts(reviews: Review[], bucketCount: number): number[] {
+  if (reviews.length === 0) return new Array(bucketCount).fill(0);
+  const times = reviews.map((r) => +new Date(r.date));
+  const min = Math.min(...times);
+  const max = Math.max(...times);
+  const span = Math.max(max - min, 1);
+  const buckets = new Array(bucketCount).fill(0);
+  for (const t of times) {
+    const idx = Math.min(bucketCount - 1, Math.floor(((t - min) / span) * bucketCount));
+    buckets[idx]++;
+  }
+  return buckets;
+}
+
+export function themeBreakdown(reviews: Review[]): ThemeStat[] {
+  const stats = THEMES.map((theme) => {
+    const matching = reviews.filter((r) => r.themes.includes(theme));
+    const pos = matching.filter((r) => r.sentiment === "positive").length;
+    return {
+      theme,
+      count: matching.length,
+      avgSentiment: Number(avgSentimentScore(matching).toFixed(2)),
+      positiveShare: matching.length ? Number(((pos / matching.length) * 100).toFixed(0)) : 0,
+      trend: bucketCounts(matching, 8),
+    };
+  }).filter((s) => s.count > 0);
+  return stats.sort((a, b) => b.count - a.count);
+}
+
+// ----- Customer segments -----
+
+export type SegmentStat = {
+  useCase: UseCase;
+  label: string;
+  count: number;
+  avgSentiment: number;
+  netSentiment: number;
+};
+
+export function segmentBreakdown(reviews: Review[]): SegmentStat[] {
+  return USE_CASES.map((useCase) => {
+    const matching = reviews.filter((r) => r.useCase === useCase);
+    return {
+      useCase,
+      label: USE_CASE_LABELS[useCase],
+      count: matching.length,
+      avgSentiment: Number(avgSentimentScore(matching).toFixed(2)),
+      netSentiment: Number(netSentiment(matching).toFixed(0)),
+    };
+  })
+    .filter((s) => s.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+// ----- Negative drivers -----
+
+export type NegativeDriver = {
+  theme: Theme;
+  count: number;
+  avgSentiment: number;
+  quote: { body: string; rating: number; date: string };
+};
+
+export function negativeDrivers(reviews: Review[]): NegativeDriver[] {
+  const negatives = reviews.filter((r) => r.sentiment === "negative");
+  const byTheme = new Map<Theme, Review[]>();
+  for (const r of negatives) {
+    for (const t of r.themes) {
+      if (!byTheme.has(t)) byTheme.set(t, []);
+      byTheme.get(t)!.push(r);
     }
   }
-
-  return Array.from(appMap.entries())
-    .map(([app, { displayName, sum, count, categories }]) => {
-      const avgRating = Math.round((sum / count) * 100) / 100;
-      // Pain score: higher volume of low ratings = more pain
-      // Formula: (5 - avgRating) * count / 10
-      const painScore = Math.round(((5 - avgRating) * count) / 10);
-      
+  return [...byTheme.entries()]
+    .map(([theme, group]) => {
+      const rep = [...group].sort((a, b) => b.helpfulVotes - a.helpfulVotes)[0];
       return {
-        app,
-        displayName,
-        avgRating,
-        count,
-        categoryBreakdown: categories,
-        painScore,
+        theme,
+        count: group.length,
+        avgSentiment: Number(avgSentimentScore(group).toFixed(2)),
+        quote: { body: rep.body, rating: rep.rating, date: rep.date },
       };
     })
-    .sort((a, b) => b.painScore - a.painScore); // Sort by pain (highest first)
+    .sort((a, b) => b.count - a.count);
 }
 
-/**
- * Get category distribution across all reviews.
- */
-export function getCategoryBreakdown(reviews: ClassifiedReview[]): CategoryCount[] {
-  const counts: Record<ReviewCategory, number> = {
-    bug: 0,
-    feature_request: 0,
-    clinical_concern: 0,
-    positive: 0,
-    other: 0,
-  };
+// ----- Competitive mentions -----
 
-  for (const review of reviews) {
-    counts[review.category] += 1;
-  }
+export type CompetitiveStat = {
+  competitor: Competitor;
+  count: number;
+  share: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  avgSentiment: number;
+};
 
-  const total = reviews.length;
-  
-  return Object.entries(counts)
-    .map(([category, count]) => ({
-      category: category as ReviewCategory,
-      count,
-      percentage: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
+export function competitiveMentions(reviews: Review[]): CompetitiveStat[] {
+  const mentionsByComp = COMPETITORS.map((competitor) => {
+    const matching = reviews.filter((r) => r.competitorMentions.includes(competitor));
+    return { competitor, matching };
+  });
+  const total = mentionsByComp.reduce((s, m) => s + m.matching.length, 0);
+  return mentionsByComp
+    .map(({ competitor, matching }) => ({
+      competitor,
+      count: matching.length,
+      share: total ? Number(((matching.length / total) * 100).toFixed(0)) : 0,
+      positive: matching.filter((r) => r.sentiment === "positive").length,
+      neutral: matching.filter((r) => r.sentiment === "neutral").length,
+      negative: matching.filter((r) => r.sentiment === "negative").length,
+      avgSentiment: Number(avgSentimentScore(matching).toFixed(2)),
     }))
     .sort((a, b) => b.count - a.count);
 }
 
-/**
- * Extract top recurring phrases from low-rated reviews.
- */
-export function getTopPhrases(
-  reviews: ClassifiedReview[],
-  options: { maxRating?: number; limit?: number } = {}
-): PhraseCount[] {
-  const { maxRating = 2, limit = 15 } = options;
-  
-  const phraseMap = new Map<string, { count: number; apps: Set<string> }>();
-  
-  // Filter to low-rated reviews
-  const lowRatedReviews = reviews.filter(r => r.rating <= maxRating);
-  
-  for (const review of lowRatedReviews) {
-    for (const phrase of review.keyPhrases) {
-      const normalizedPhrase = phrase.toLowerCase().trim();
-      if (normalizedPhrase.length < 3) continue; // Skip very short phrases
-      
-      const existing = phraseMap.get(normalizedPhrase);
-      if (existing) {
-        existing.count += 1;
-        existing.apps.add(review.appDisplayName);
-      } else {
-        phraseMap.set(normalizedPhrase, {
-          count: 1,
-          apps: new Set([review.appDisplayName]),
-        });
-      }
-    }
-  }
+// ----- Top phrases -----
 
-  return Array.from(phraseMap.entries())
-    .map(([phrase, { count, apps }]) => ({
-      phrase,
-      count,
-      apps: Array.from(apps),
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, limit);
+const POSITIVE_PHRASES = [
+  "discreet",
+  "comfortable",
+  "peace of mind",
+  "absorbency",
+  "stays dry",
+  "no smell",
+  "odor control",
+  "invisible",
+  "reliable",
+  "soft",
+  "confidence",
+  "recommend",
+];
+const NEGATIVE_PHRASES = [
+  "adhesive",
+  "shifts",
+  "thinner than the previous version",
+  "thinner",
+  "too small",
+  "leaked",
+  "expensive",
+  "won't stay",
+  "moves around",
+  "torn",
+  "bunches",
+  "not enough",
+];
+
+export type PhraseChip = { phrase: string; count: number };
+
+function countPhrases(reviews: Review[], phrases: string[]): PhraseChip[] {
+  return phrases
+    .map((phrase) => {
+      const p = phrase.toLowerCase();
+      const count = reviews.filter((r) => r.body.toLowerCase().includes(p)).length;
+      return { phrase, count };
+    })
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count);
 }
 
-/**
- * Apply the global FilterState to a list of classified reviews.
- *
- * Semantics:
- * - timeRange: "7d"/"30d"/"90d" = rolling window ending on the newest
- *   review's date. Custom { start, end } is inclusive on both ends.
- * - apps: empty array = no constraint.
- * - os: "all" = no constraint.
- * - categories: empty array = no constraint.
- * - ratingBucket: "all" = no constraint. "1-2" matches ratings 1 or 2.
- * - activeKeyword: case-insensitive match in title, body, or keyPhrases.
- */
-export function filterReviews(
-  reviews: ClassifiedReview[],
-  filter: FilterState
-): ClassifiedReview[] {
-  if (reviews.length === 0) return reviews;
-
-  // Resolve the time window to concrete start/end YYYY-MM-DD strings.
-  let startDay: string;
-  let endDay: string;
-  if (typeof filter.timeRange === "string") {
-    const days = filter.timeRange === "7d" ? 7 : filter.timeRange === "30d" ? 30 : 90;
-    // Anchor the window at the newest review so the filter is stable
-    // across deploys regardless of wall-clock time.
-    const newest = reviews.reduce((max, r) => (r.date > max ? r.date : max), reviews[0].date);
-    const anchor = parseISO(newest);
-    const endUtc = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate()));
-    const startUtc = addDays(endUtc, -(days - 1));
-    startDay = format(startUtc, "yyyy-MM-dd");
-    endDay = format(endUtc, "yyyy-MM-dd");
-  } else {
-    startDay = filter.timeRange.start;
-    endDay = filter.timeRange.end;
-  }
-
-  const appSet = filter.apps.length > 0 ? new Set(filter.apps) : null;
-  const categorySet = filter.categories.length > 0 ? new Set(filter.categories) : null;
-  const keyword = filter.activeKeyword?.toLowerCase().trim() || null;
-
-  return reviews.filter((r) => {
-    // Time range (inclusive).
-    const day = r.date.slice(0, 10);
-    if (day < startDay || day > endDay) return false;
-
-    // App whitelist.
-    if (appSet && !appSet.has(r.app)) return false;
-
-    // OS.
-    if (filter.os !== "all" && r.os !== filter.os) return false;
-
-    // Category whitelist.
-    if (categorySet && !categorySet.has(r.category)) return false;
-
-    // Rating bucket.
-    if (filter.ratingBucket !== "all") {
-      if (filter.ratingBucket === "1-2" && !(r.rating === 1 || r.rating === 2)) return false;
-      if (filter.ratingBucket === "3" && r.rating !== 3) return false;
-      if (filter.ratingBucket === "4-5" && !(r.rating === 4 || r.rating === 5)) return false;
-    }
-
-    // Keyword (title / body / keyPhrases).
-    if (keyword) {
-      const hay =
-        (r.title?.toLowerCase() ?? "") +
-        "\n" +
-        r.body.toLowerCase() +
-        "\n" +
-        r.keyPhrases.join(" ").toLowerCase();
-      if (!hay.includes(keyword)) return false;
-    }
-
-    return true;
-  });
+export function topPhrases(reviews: Review[]): {
+  positive: PhraseChip[];
+  negative: PhraseChip[];
+} {
+  return {
+    positive: countPhrases(
+      reviews.filter((r) => r.sentiment !== "negative"),
+      POSITIVE_PHRASES,
+    ),
+    negative: countPhrases(
+      reviews.filter((r) => r.sentiment !== "positive"),
+      NEGATIVE_PHRASES,
+    ),
+  };
 }
 
-/**
- * Get the top-N pain-point phrases for a single app.
- * Mirrors getTopPhrases but scopes to one app slug, so Zone 4's
- * per-app drill-down drawer can show contextualized complaints.
- */
-export function getAppPainPoints(
-  reviews: ClassifiedReview[],
-  appSlug: string,
-  limit: number = 5,
-  maxRating: number = 2
-): PhraseCount[] {
-  const phraseMap = new Map<string, { count: number; apps: Set<string> }>();
+// ----- Auto insights -----
 
-  for (const review of reviews) {
-    if (review.app !== appSlug) continue;
-    if (review.rating > maxRating) continue;
-
-    for (const phrase of review.keyPhrases) {
-      const normalized = phrase.toLowerCase().trim();
-      if (normalized.length < 3) continue;
-
-      const existing = phraseMap.get(normalized);
-      if (existing) {
-        existing.count += 1;
-        existing.apps.add(review.appDisplayName);
-      } else {
-        phraseMap.set(normalized, {
-          count: 1,
-          apps: new Set([review.appDisplayName]),
-        });
-      }
-    }
-  }
-
-  return Array.from(phraseMap.entries())
-    .map(([phrase, { count, apps }]) => ({
-      phrase,
-      count,
-      apps: Array.from(apps),
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, limit);
-}
-
-/**
- * Category display configuration
- */
-export const CATEGORY_CONFIG: Record<ReviewCategory, { label: string; color: string; bgColor: string }> = {
-  bug: { label: "Broken", color: "#78716c", bgColor: "bg-stone-100 text-stone-700" },
-  feature_request: { label: "Wishlist", color: "#64748b", bgColor: "bg-slate-100 text-slate-700" },
-  clinical_concern: { label: "Needs attention", color: "#a16207", bgColor: "bg-amber-50 text-amber-700" },
-  positive: { label: "Working", color: "#4b5563", bgColor: "bg-gray-100 text-gray-600" },
-  other: { label: "Untagged", color: "#6b7280", bgColor: "bg-neutral-100 text-neutral-600" },
+export type Insight = {
+  tone: "positive" | "negative" | "neutral";
+  headline: string;
+  detail: string;
 };
+
+export function autoInsights(
+  current: Review[],
+  prior: Review[] | null,
+  kpis: Kpis,
+): Insight[] {
+  const insights: Insight[] = [];
+  if (current.length === 0) return insights;
+
+  const themes = themeBreakdown(current);
+  const positives = current.filter((r) => r.sentiment === "positive");
+
+  const posThemes = [...themes].sort((a, b) => b.positiveShare - a.positiveShare);
+  const topPos = posThemes.find((t) => t.count >= 3);
+  if (topPos && positives.length > 0) {
+    const inPos = positives.filter((r) => r.themes.includes(topPos.theme)).length;
+    const pct = Math.round((inPos / positives.length) * 100);
+    insights.push({
+      tone: "positive",
+      headline: `${topPos.theme} is the strongest positive driver`,
+      detail: `It appears in ${pct}% of positive reviews this period — the clearest reason customers stay loyal.`,
+    });
+  }
+
+  if (prior && prior.length > 0) {
+    const curNeg = negativeDrivers(current);
+    const priorNeg = negativeDrivers(prior);
+    let biggestRise: { theme: Theme; delta: number } | null = null;
+    for (const c of curNeg) {
+      const p = priorNeg.find((x) => x.theme === c.theme);
+      const curRate = c.count / current.length;
+      const priorRate = p ? p.count / prior.length : 0;
+      const delta = (curRate - priorRate) * 100;
+      if (!biggestRise || delta > biggestRise.delta) {
+        biggestRise = { theme: c.theme, delta };
+      }
+    }
+    if (biggestRise && biggestRise.delta >= 2) {
+      insights.push({
+        tone: "negative",
+        headline: `${biggestRise.theme} complaints are rising`,
+        detail: `Mentions in negative reviews rose ${biggestRise.delta.toFixed(0)} points versus the prior period — worth a closer look.`,
+      });
+    }
+  }
+
+  if (kpis.netSentimentDelta !== null && Math.abs(kpis.netSentimentDelta) >= 1) {
+    const up = kpis.netSentimentDelta > 0;
+    insights.push({
+      tone: up ? "positive" : "negative",
+      headline: `Net sentiment ${up ? "improved" : "softened"} ${Math.abs(kpis.netSentimentDelta).toFixed(0)} pts`,
+      detail: `Now ${kpis.netSentiment.toFixed(0)}% net positive versus the prior equivalent period.`,
+    });
+  }
+
+  insights.push({
+    tone: "neutral",
+    headline: `${kpis.verifiedShare.toFixed(0)}% of reviews are verified purchases`,
+    detail:
+      kpis.verifiedShare >= 80
+        ? "Feedback in this period is highly trustworthy — sourced from confirmed buyers."
+        : "A notable share of reviews are unverified; weight verified feedback more heavily.",
+  });
+
+  return insights.slice(0, 4);
+}
